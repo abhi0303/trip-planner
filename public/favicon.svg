@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="TripSphere">
+  <!-- The header mark: gradient-brand tile (135deg, --c-brand to --c-brand-2) with the lucide compass. -->
+  <defs>
+    <linearGradient id="ts-brand" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0d94a5"/>
+      <stop offset="1" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="21.33" fill="url(#ts-brand)"/>
+  <!-- Scaled up from the header's 53% to 62% of the tile: at 16px the needle needs the extra weight. -->
+  <g transform="translate(12.15 12.15) scale(1.654)"
+     fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/>
+  </g>
+</svg>
