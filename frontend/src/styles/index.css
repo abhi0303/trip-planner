@@ -1,0 +1,296 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  "Aurora over night" — dark-first, image-forward.
+  Cyan→indigo carries navigation and action; amber is reserved for money and
+  data so a figure never reads as a button. Light mode is the same system
+  re-stepped for a white surface, not an inversion.
+*/
+@layer base {
+  :root {
+    --c-ground: 247 248 250;
+    --c-ground-deep: 238 241 246;
+    --c-surface: 255 255 255;
+    --c-surface-2: 248 250 252;
+    --c-sunk: 241 244 248;
+    --c-line: 226 232 240;
+    --c-line-soft: 236 240 245;
+    --c-ink: 12 18 32;
+    --c-ink-soft: 92 105 125;
+    --c-ink-faint: 141 152 170;
+
+    --c-brand: 13 148 165;
+    --c-brand-2: 99 102 241;
+    --c-brand-ink: 10 116 130;
+    --c-brand-soft: 224 246 249;
+
+    --c-ember: 194 108 8;
+    --c-ember-soft: 254 243 221;
+
+    --c-ok: 21 128 84;
+    --c-ok-soft: 222 244 233;
+    --c-warn: 176 104 12;
+    --c-warn-soft: 253 241 219;
+    --c-danger: 200 46 52;
+    --c-danger-soft: 253 231 232;
+
+    --c-shadow: 15 23 42;
+    /* Illustrations ship on a white plate; dark mode takes the glare off. */
+    --illo-filter: none;
+
+    /*
+      Expense categories. A fixed categorical palette — never cycled, never
+      reordered. Validated against both surfaces for lightness band, chroma
+      floor, colour-vision separation, normal-vision separation and contrast.
+      Two slots sit under 3:1 on the light surface, so every segment of the
+      stacked bar carries a visible direct label; do not remove those labels.
+    */
+    --viz-transportation: #2a78d6;
+    --viz-stay:           #0b9488;
+    --viz-food:           #eb6834;
+    --viz-activities:     #6a4fbb;
+    --viz-shopping:       #e87ba4;
+    --viz-other:          #eda100;
+    --glow: 0 0 0 0 transparent;
+
+    color-scheme: light;
+  }
+
+  /* Dark is the default vibe; the media query covers the OS setting and the
+     data-theme scope covers the in-app toggle, which must win both ways. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --c-ground: 8 11 19;
+      --c-ground-deep: 5 7 13;
+      --c-surface: 17 22 36;
+      --c-surface-2: 22 28 45;
+      --c-sunk: 13 18 30;
+      --c-line: 35 44 66;
+      --c-line-soft: 27 34 52;
+      --c-ink: 232 237 247;
+      --c-ink-soft: 148 163 189;
+      --c-ink-faint: 106 121 148;
+
+      --c-brand: 34 211 238;
+      --c-brand-2: 129 140 248;
+      --c-brand-ink: 165 243 252;
+      --c-brand-soft: 14 42 56;
+
+      --c-ember: 251 191 36;
+      --c-ember-soft: 51 38 12;
+
+      --c-ok: 52 211 153;
+      --c-ok-soft: 10 43 33;
+      --c-warn: 251 191 36;
+      --c-warn-soft: 50 37 11;
+      --c-danger: 248 113 113;
+      --c-danger-soft: 55 22 24;
+
+      --c-shadow: 0 0 0;
+      --illo-filter: brightness(0.93) saturate(1.06);
+
+      /* The same six hues, re-stepped for the dark surface — not a flip. */
+      --viz-transportation: #3987e5;
+      --viz-stay:           #16a294;
+      --viz-food:           #d95926;
+      --viz-activities:     #9085e9;
+      --viz-shopping:       #d55181;
+      --viz-other:          #c98500;
+
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme='dark'] {
+    --c-ground: 8 11 19;
+    --c-ground-deep: 5 7 13;
+    --c-surface: 17 22 36;
+    --c-surface-2: 22 28 45;
+    --c-sunk: 13 18 30;
+    --c-line: 35 44 66;
+    --c-line-soft: 27 34 52;
+    --c-ink: 232 237 247;
+    --c-ink-soft: 148 163 189;
+    --c-ink-faint: 106 121 148;
+
+    --c-brand: 34 211 238;
+    --c-brand-2: 129 140 248;
+    --c-brand-ink: 165 243 252;
+    --c-brand-soft: 14 42 56;
+
+    --c-ember: 251 191 36;
+    --c-ember-soft: 51 38 12;
+
+    --c-ok: 52 211 153;
+    --c-ok-soft: 10 43 33;
+    --c-warn: 251 191 36;
+    --c-warn-soft: 50 37 11;
+    --c-danger: 248 113 113;
+    --c-danger-soft: 55 22 24;
+
+    --c-shadow: 0 0 0;
+    --illo-filter: brightness(0.93) saturate(1.06);
+
+      /* The same six hues, re-stepped for the dark surface — not a flip. */
+    --viz-transportation: #3987e5;
+    --viz-stay:           #16a294;
+    --viz-food:           #d95926;
+    --viz-activities:     #9085e9;
+    --viz-shopping:       #d55181;
+    --viz-other:          #c98500;
+
+    color-scheme: dark;
+  }
+
+  * { @apply border-line-soft; }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-ground text-ink font-sans antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
+    /* Aurora wash: keeps large flat areas from reading as unfinished. */
+    background-image:
+      radial-gradient(70rem 46rem at 8% -12%, rgb(var(--c-brand) / 0.11), transparent 60%),
+      radial-gradient(60rem 42rem at 96% 2%, rgb(var(--c-brand-2) / 0.10), transparent 62%),
+      radial-gradient(48rem 40rem at 50% 118%, rgb(var(--c-brand-2) / 0.07), transparent 60%);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight;
+    text-wrap: balance;
+  }
+
+  /* Money and counts line up wherever they stack in a column. */
+  .tnum { font-variant-numeric: tabular-nums; font-family: theme('fontFamily.mono'); }
+
+  ::selection { @apply bg-brand/25 text-ink; }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-ground rounded-lg;
+  }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-line rounded-pill border-[3px] border-solid border-transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-ink-faint; background-clip: padding-box; }
+}
+
+@layer base {
+  /*
+    A fixed film-grain layer over the whole canvas. It is what separates a flat
+    gradient from something that reads as a finished surface — 3.5% opacity is
+    enough to feel it and not enough to see it.
+  */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  #root { position: relative; z-index: 1; }
+}
+
+@layer components {
+  .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+
+  /* Frosted panel used by the top bar, the floating nav and overlays. */
+  .glass {
+    background: rgb(var(--c-surface) / 0.72);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+  }
+
+  .gradient-brand {
+    background-image: linear-gradient(135deg, rgb(var(--c-brand)), rgb(var(--c-brand-2)));
+  }
+
+  .text-gradient {
+    background-image: linear-gradient(120deg, rgb(var(--c-brand)), rgb(var(--c-brand-2)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* A hairline top highlight — what makes a card read as lit rather than flat. */
+  .lit {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.06),
+      0 1px 2px rgb(var(--c-shadow) / 0.10),
+      0 12px 32px -16px rgb(var(--c-shadow) / 0.35);
+  }
+
+  .skeleton {
+    @apply relative overflow-hidden bg-sunk rounded-lg;
+  }
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full;
+    background: linear-gradient(90deg, transparent, rgb(var(--c-ink) / 0.07), transparent);
+    animation: shimmer 1.6s infinite;
+  }
+
+  .eyebrow {
+    @apply font-mono text-2xs uppercase tracking-[0.16em] text-ink-faint;
+  }
+
+  /*
+    A gradient hairline that only appears on hover — cheaper than a real
+    gradient border and it does not affect layout.
+  */
+  .ring-gradient {
+    position: relative;
+  }
+  .ring-gradient::after {
+    content: '';
+    @apply pointer-events-none absolute inset-0 rounded-[inherit] opacity-0 transition-opacity duration-300;
+    padding: 1px;
+    background: linear-gradient(135deg, rgb(var(--c-brand) / 0.7), rgb(var(--c-brand-2) / 0.55), transparent 70%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+  .group:hover .ring-gradient::after,
+  .ring-gradient:hover::after { @apply opacity-100; }
+
+  /* Section shell used for the big page headers. */
+  .hero-surface {
+    @apply relative overflow-hidden rounded-xl2;
+    background:
+      radial-gradient(40rem 20rem at 8% 0%, rgb(var(--c-brand) / 0.20), transparent 62%),
+      radial-gradient(34rem 20rem at 92% 10%, rgb(var(--c-brand-2) / 0.18), transparent 64%),
+      rgb(var(--c-surface) / 0.55);
+  }
+
+  /* Ambient colour bloom behind a focal element. */
+  .bloom::before {
+    content: '';
+    @apply pointer-events-none absolute -inset-px -z-10 rounded-[inherit] opacity-0 transition-opacity duration-300;
+    background-image: linear-gradient(135deg, rgb(var(--c-brand) / 0.5), rgb(var(--c-brand-2) / 0.5));
+    filter: blur(18px);
+  }
+  .group:hover .bloom::before { @apply opacity-60; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
