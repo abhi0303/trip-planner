@@ -27,7 +27,8 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      {/* Vite's BASE_URL carries the deploy subpath; '/' in dev, '/repo/' on Pages. */}
+      <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
         <AuthProvider>
           <ToastProvider>
             <GlobalLoader />
