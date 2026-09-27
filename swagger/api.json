@@ -1556,9 +1556,63 @@
                 ]
             }
         },
+        "/places/states": {
+            "get": {
+                "description": "Every state that has at least one canonical place, with how many. Unlike /places/destinations this does not require a published trip, so it can back a picker for a country nobody has visited yet.",
+                "operationId": "Places_states",
+                "parameters": [
+                    {
+                        "name": "countryCode",
+                        "required": false,
+                        "in": "query",
+                        "schema": {
+                            "example": "IN",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "success",
+                                        "data",
+                                        "timestamp"
+                                    ],
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Object"
+                                            }
+                                        },
+                                        "timestamp": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "summary": "States in the place catalogue",
+                "tags": [
+                    "Places"
+                ]
+            }
+        },
         "/places/destinations": {
             "get": {
-                "description": "Feeds country/state filter dropdowns.",
+                "description": "Returns { countryCode, country, state, tripCount } — despite the name these are states, not destination places. Use /places/states for a catalogue-wide list, or /places/search?destinationsOnly=true for actual destinations.",
                 "operationId": "Places_destinations",
                 "parameters": [
                     {
@@ -1603,7 +1657,7 @@
                         }
                     }
                 },
-                "summary": "Destinations that have published trips",
+                "summary": "Country/state combinations that have published trips",
                 "tags": [
                     "Places"
                 ]
@@ -4180,8 +4234,108 @@
                 ]
             }
         },
+        "/trips/{tripId}/photos/{photoId}/cover": {
+            "put": {
+                "description": "The photo must already be on this trip. Returns the full photo list with the new isCover flags, so the client can re-render from one response.",
+                "operationId": "TripSections_setCoverPhoto",
+                "parameters": [
+                    {
+                        "name": "tripId",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "photoId",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "success",
+                                        "data",
+                                        "timestamp"
+                                    ],
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/TripPhotoDto"
+                                            }
+                                        },
+                                        "timestamp": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Missing or expired access token",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorDto"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated but not allowed to perform this action",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorDto"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource does not exist or is not visible to you",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorDto"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    },
+                    {
+                        "bearer": []
+                    }
+                ],
+                "summary": "Mark a photo as the trip cover",
+                "tags": [
+                    "Trip content"
+                ]
+            }
+        },
         "/trips/{tripId}/photos/{photoId}": {
             "delete": {
+                "description": "Also deletes the stored image when nothing else uses it. If the removed photo was the cover, the next photo becomes the cover.",
                 "operationId": "TripSections_removePhoto",
                 "parameters": [
                     {
@@ -4261,11 +4415,6 @@
                         }
                     }
                 },
-                "security": [
-                    {
-                        "bearer": []
-                    }
-                ],
                 "summary": "Remove a photo from the trip",
                 "tags": [
                     "Trip content"
@@ -5066,8 +5215,117 @@
                 ]
             }
         },
+        "/trips/{tripId}/itinerary/activities/move": {
+            "put": {
+                "description": "All-or-nothing: the whole set lands on the target day or nothing moves. The day is created if it does not exist. Returns the full itinerary, since both the source and target days changed.",
+                "operationId": "Itinerary_moveActivities",
+                "parameters": [
+                    {
+                        "name": "tripId",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MoveActivitiesDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "success",
+                                        "data",
+                                        "timestamp"
+                                    ],
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/TripDayDto"
+                                            }
+                                        },
+                                        "timestamp": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Validation failed or the request was malformed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorDto"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Missing or expired access token",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorDto"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated but not allowed to perform this action",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorDto"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource does not exist or is not visible to you",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorDto"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ],
+                "summary": "Move several activities to one day",
+                "tags": [
+                    "Itinerary"
+                ]
+            }
+        },
         "/trips/{tripId}/itinerary/activities/{activityId}": {
             "patch": {
+                "description": "Send dayNumber to move it to another day of the same trip — it keeps its id, place, kind and times. Omit dayNumber and only the fields sent are changed.",
                 "operationId": "Itinerary_updateActivity",
                 "parameters": [
                     {
@@ -8698,6 +8956,11 @@
                         "type": "number",
                         "example": 137,
                         "description": "Published experiences at this place"
+                    },
+                    "isDestination": {
+                        "type": "boolean",
+                        "example": true,
+                        "description": "True for places travellers pick as a trip destination (South Goa) rather than individual spots they visit (Cola Beach)."
                     }
                 },
                 "required": [
@@ -8707,7 +8970,8 @@
                     "countryCode",
                     "country",
                     "category",
-                    "experienceCount"
+                    "experienceCount",
+                    "isDestination"
                 ]
             },
             "CreatePlaceDto": {
@@ -9036,6 +9300,11 @@
                         "example": 137,
                         "description": "Published experiences at this place"
                     },
+                    "isDestination": {
+                        "type": "boolean",
+                        "example": true,
+                        "description": "True for places travellers pick as a trip destination (South Goa) rather than individual spots they visit (Cola Beach)."
+                    },
                     "description": {
                         "type": "string",
                         "nullable": true
@@ -9075,6 +9344,7 @@
                     "country",
                     "category",
                     "experienceCount",
+                    "isDestination",
                     "isVerified",
                     "aggregates",
                     "realityChecks"
@@ -9109,7 +9379,15 @@
                     },
                     "destination": {
                         "type": "string",
-                        "example": "South Goa"
+                        "example": "North Goa, South Goa",
+                        "description": "Card label. Joined from `destinations` unless the author set one."
+                    },
+                    "destinations": {
+                        "description": "Everywhere this trip went, in the order the author arranged them. Empty only for trips created before multi-destination support.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PlaceSummaryDto"
+                        }
                     },
                     "startDate": {
                         "format": "date",
@@ -9235,6 +9513,7 @@
                     "country",
                     "countryCode",
                     "destination",
+                    "destinations",
                     "startDate",
                     "endDate",
                     "nights",
@@ -9487,12 +9766,18 @@
                     },
                     "sequence": {
                         "type": "number"
+                    },
+                    "isCover": {
+                        "type": "boolean",
+                        "description": "True for the one photo used as the trip cover. Exactly one photo has this set while the trip has any photos.",
+                        "example": false
                     }
                 },
                 "required": [
                     "id",
                     "media",
-                    "sequence"
+                    "sequence",
+                    "isCover"
                 ]
             },
             "RatingGroupDto": {
@@ -9686,7 +9971,15 @@
                     },
                     "destination": {
                         "type": "string",
-                        "example": "South Goa"
+                        "example": "North Goa, South Goa",
+                        "description": "Card label. Joined from `destinations` unless the author set one."
+                    },
+                    "destinations": {
+                        "description": "Everywhere this trip went, in the order the author arranged them. Empty only for trips created before multi-destination support.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PlaceSummaryDto"
+                        }
                     },
                     "startDate": {
                         "format": "date",
@@ -9954,6 +10247,7 @@
                     "country",
                     "countryCode",
                     "destination",
+                    "destinations",
                     "startDate",
                     "endDate",
                     "nights",
@@ -10001,17 +10295,32 @@
                     },
                     "state": {
                         "type": "string",
-                        "example": "Goa"
+                        "example": "Goa",
+                        "description": "Optional. Derived from the destinations when omitted, and left empty when they span more than one state."
                     },
                     "destination": {
                         "type": "string",
-                        "example": "South Goa",
-                        "description": "Free-text label shown on the trip card"
+                        "example": "North Goa, South Goa",
+                        "description": "Label shown on the trip card. Optional when destinationIds is given — the server then joins the destination names. Send it only to override that label."
+                    },
+                    "destinationIds": {
+                        "maxItems": 10,
+                        "example": [
+                            "3fa85f64-…",
+                            "2cb96e21-…"
+                        ],
+                        "description": "Canonical places this trip was to, in display order. This is what powers discovery: GET /trips?destinationId= matches a trip if ANY of these is that id. On PATCH the list sent replaces the whole set.",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
                     },
                     "destinationId": {
                         "type": "string",
                         "format": "uuid",
-                        "description": "Canonical place for the destination. Strongly recommended — it powers discovery."
+                        "deprecated": true,
+                        "description": "Legacy single destination. Use destinationIds. Mirrors destinations[0] on read."
                     },
                     "startDate": {
                         "type": "string",
@@ -10193,7 +10502,6 @@
                     "title",
                     "countryCode",
                     "country",
-                    "destination",
                     "startDate",
                     "endDate"
                 ]
@@ -10216,17 +10524,32 @@
                     },
                     "state": {
                         "type": "string",
-                        "example": "Goa"
+                        "example": "Goa",
+                        "description": "Optional. Derived from the destinations when omitted, and left empty when they span more than one state."
                     },
                     "destination": {
                         "type": "string",
-                        "example": "South Goa",
-                        "description": "Free-text label shown on the trip card"
+                        "example": "North Goa, South Goa",
+                        "description": "Label shown on the trip card. Optional when destinationIds is given — the server then joins the destination names. Send it only to override that label."
+                    },
+                    "destinationIds": {
+                        "maxItems": 10,
+                        "example": [
+                            "3fa85f64-…",
+                            "2cb96e21-…"
+                        ],
+                        "description": "Canonical places this trip was to, in display order. This is what powers discovery: GET /trips?destinationId= matches a trip if ANY of these is that id. On PATCH the list sent replaces the whole set.",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
                     },
                     "destinationId": {
                         "type": "string",
                         "format": "uuid",
-                        "description": "Canonical place for the destination. Strongly recommended — it powers discovery."
+                        "deprecated": true,
+                        "description": "Legacy single destination. Use destinationIds. Mirrors destinations[0] on read."
                     },
                     "startDate": {
                         "type": "string",
@@ -10683,6 +11006,11 @@
                     },
                     "sequence": {
                         "type": "number"
+                    },
+                    "isCover": {
+                        "type": "boolean",
+                        "description": "Mark this photo as the trip cover. If several in one request set it, the last one wins.",
+                        "default": false
                     }
                 },
                 "required": [
@@ -10885,6 +11213,28 @@
                     "activityIds"
                 ]
             },
+            "MoveActivitiesDto": {
+                "type": "object",
+                "properties": {
+                    "activityIds": {
+                        "description": "Activities to move, all from the same trip. Applied in the order given.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "dayNumber": {
+                        "type": "number",
+                        "minimum": 1,
+                        "example": 5,
+                        "description": "Day to move them to."
+                    }
+                },
+                "required": [
+                    "activityIds",
+                    "dayNumber"
+                ]
+            },
             "UpdateActivityDto": {
                 "type": "object",
                 "properties": {
@@ -10927,6 +11277,12 @@
                     },
                     "sequence": {
                         "type": "number"
+                    },
+                    "dayNumber": {
+                        "type": "number",
+                        "minimum": 1,
+                        "example": 5,
+                        "description": "Move the activity to this day of the same trip. The day is created if it does not exist yet, and a number beyond the trip length is rejected. The activity goes to the end of the target day unless `sequence` is sent too. Omit this and the activity stays where it is."
                     }
                 }
             },

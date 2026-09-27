@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { duration, formatDate, minutes, money, toDateInput } from '@/lib/format';
 import { timeRange } from '@/lib/itinerary';
+import { useGeoSearch, useStates } from '@/api/queries';
 import {
   ACTIVITY_KIND_META, CROWD_META, SEASON_META, VISIBILITY_META, WEATHER_META,
   activityMeta, categoryMeta, criteriaLabel, isCoverPhoto, placeIcon, styleMeta,
@@ -9,7 +10,8 @@ import {
 import {
   ACTIVITY_KIND, CROWD_LEVEL, CURRENCY, EXPENSE_CATEGORY, TRAVEL_STYLE, VISIBILITY, WEATHER,
   type ActivityKind, type CreateTripBody, type ExpenseInput, type RatingCriteria,
-  type RatingType, type StayInput, type TripDetail, type TripMeta, type Visibility,
+  type PlaceSummary, type RatingType, type StayInput, type TripDay, type TripDetail,
+  type TripMeta, type Visibility,
 } from '@/api/types';
 import { Field, Input, MoneyInput, Textarea } from '@/components/ui/Field';
 import { Dropdown } from '@/components/ui/Dropdown';
@@ -23,12 +25,50 @@ import { ImageCropper } from '@/components/ui/ImageCropper';
 
 // -------------------------------------------------------- 1. destination
 
+const MAX_DESTINATIONS = 10;
+
+/**
+ * One field for where the trip went, not two. A trip to Goa is usually a trip
+ * to North Goa *and* South Goa, so destinations are a set of canonical places
+ * rather than a typed label — the server joins their names for the card and
+ * works out the state. Free text is gone on purpose: it is what produced the
+ * catalogue row "palelem, cola beach and butter fly beach".
+ */
 export function StepDestination({
-  draft, onChange,
+  draft, onChange, destinations, onDestinationsChange,
 }: {
   draft: Partial<CreateTripBody>;
   onChange: (patch: Partial<CreateTripBody>) => void;
+  destinations: PlaceSummary[];
+  onDestinationsChange: (next: PlaceSummary[]) => void;
 }) {
+  const states = useStates(draft.countryCode);
+  const [stateQuery, setStateQuery] = useState('');
+
+  // The catalogue only knows states it already has places in, so a country
+  // nobody has recorded yet falls back to the map.
+  const known = states.data ?? [];
+  const geo = useGeoSearch(stateQuery, draft.countryCode, known.length === 0 && stateQuery.length >= 2);
+
+  const stateOptions = known.length
+    ? known.map((entry) => ({
+        value: entry.state,
+        label: entry.state,
+        hint: `${entry.placeCount} ${entry.placeCount === 1 ? 'place' : 'places'}`,
+      }))
+    : (geo.data ?? [])
+        .filter((suggestion) => suggestion.state)
+        .map((suggestion) => ({ value: suggestion.state!, label: suggestion.state! }));
+
+  // Keep whatever is already on the trip selectable, even if the catalogue
+  // has since stopped returning it.
+  const options = draft.state && !stateOptions.some((option) => option.value === draft.state)
+    ? [{ value: draft.state, label: draft.state }, ...stateOptions]
+    : stateOptions;
+
+  const pickedIds = new Set(destinations.map((place) => place.id));
+  const full = destinations.length >= MAX_DESTINATIONS;
+
   return (
     <div className="space-y-4">
       <Field label="Country" required>
@@ -40,70 +80,82 @@ export function StepDestination({
             value={draft.countryCode}
             onChange={(code) => {
               const country = COUNTRIES.find((c) => c.code === code);
-              onChange({ countryCode: country?.code, country: country?.name, destinationId: undefined });
+              // Destinations belong to a country; changing it invalidates them.
+              onDestinationsChange([]);
+              onChange({ countryCode: country?.code, country: country?.name, state: undefined });
             }}
-            options={COUNTRIES.map((country) => ({
-              value: country.code,
-              label: country.name,
-            }))}
+            options={COUNTRIES.map((country) => ({ value: country.code, label: country.name }))}
           />
         )}
       </Field>
 
-      <Field label="State or region" hint="optional">
+      <Field
+        label="Where did you go?"
+        hint={destinations.length ? `${destinations.length} of ${MAX_DESTINATIONS}` : 'add as many as you visited'}
+        required
+      >
+        {() => (
+          <div className="space-y-2">
+            {destinations.length > 0 && (
+              <ul className="flex flex-wrap gap-1.5">
+                {destinations.map((place) => (
+                  <li key={place.id}>
+                    <span className="inline-flex items-center gap-1.5 rounded-pill border border-brand/40 bg-brand-soft py-1 pl-2.5 pr-1.5 text-[13px] font-medium">
+                      <Icon name={placeIcon(place.category)} size={13} className="text-brand" />
+                      {place.name}
+                      <button
+                        type="button"
+                        onClick={() => onDestinationsChange(destinations.filter((p) => p.id !== place.id))}
+                        aria-label={`Remove ${place.name}`}
+                        className="rounded-full p-0.5 text-ink-faint transition-colors hover:bg-ground hover:text-danger"
+                      >
+                        <Icon name="x" size={13} />
+                      </button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {!draft.countryCode ? (
+              <p className="rounded-xl border border-dashed border-line px-4 py-3 text-[13px] text-ink-soft">
+                Pick a country first.
+              </p>
+            ) : full ? (
+              <p className="rounded-xl border border-dashed border-line px-4 py-3 text-[13px] text-ink-soft">
+                That is the maximum. Remove one to add another.
+              </p>
+            ) : (
+              <PlacePicker
+                destinationsOnly
+                country={{ countryCode: draft.countryCode, country: draft.country!, state: draft.state }}
+                placeholder={destinations.length ? 'Add another destination…' : 'Search a destination — North Goa, Pattaya…'}
+                onPick={(place) => {
+                  if (pickedIds.has(place.id)) return;
+                  onDestinationsChange([...destinations, place]);
+                }}
+              />
+            )}
+          </div>
+        )}
+      </Field>
+
+      <Field
+        label="State or region"
+        hint={draft.state ? 'optional' : 'optional — worked out from your destinations'}
+      >
         {(id) => (
-          <Input
+          <Dropdown
             id={id}
-            value={draft.state ?? ''}
-            onChange={(event) => onChange({ state: event.target.value })}
-            placeholder="Goa"
+            searchable
+            placeholder={draft.countryCode ? 'Leave it to your destinations' : 'Pick a country first'}
+            value={draft.state}
+            onSearch={setStateQuery}
+            onChange={(next) => onChange({ state: next || undefined })}
+            options={options}
           />
         )}
       </Field>
-
-      <Field label="Destination" hint="where you actually went" required>
-        {(id) => (
-          <Input
-            id={id}
-            value={draft.destination ?? ''}
-            onChange={(event) => onChange({ destination: event.target.value })}
-            placeholder="South Goa"
-            required
-          />
-        )}
-      </Field>
-
-      {draft.countryCode && (
-        <Field
-          label="Link to a known destination"
-          hint="optional — powers discovery"
-        >
-          {() => (
-            <>
-              {draft.destinationId ? (
-                <div className="flex items-center gap-2 rounded-xl border border-brand/40 bg-brand-soft px-3 py-2.5">
-                  <Icon name="pin" size={15} className="text-brand" />
-                  <span className="flex-1 text-sm font-medium">{draft.destination}</span>
-                  <button
-                    type="button"
-                    onClick={() => onChange({ destinationId: undefined })}
-                    className="text-xs font-medium text-ink-faint hover:text-ink"
-                  >
-                    Unlink
-                  </button>
-                </div>
-              ) : (
-                <PlacePicker
-                  destinationsOnly
-                  country={{ countryCode: draft.countryCode!, country: draft.country!, state: draft.state }}
-                  placeholder="Search destinations…"
-                  onPick={(place) => onChange({ destinationId: place.id, destination: draft.destination || place.name })}
-                />
-              )}
-            </>
-          )}
-        </Field>
-      )}
 
       <Field label="Trip title" required>
         {(id) => (
@@ -483,16 +535,133 @@ function dateForDay(startDate: string | undefined, dayNumber: number): string {
   return at.toISOString().slice(0, 10);
 }
 
-const EMPTY_ACTIVITY = { title: '', kind: 'SIGHTSEEING' as ActivityKind, placeId: '', startTime: '', endTime: '' };
+interface ActivityDraft {
+  title: string;
+  kind: ActivityKind;
+  placeId: string;
+  startTime: string;
+  endTime: string;
+}
+
+const EMPTY_ACTIVITY: ActivityDraft = {
+  title: '', kind: 'SIGHTSEEING', placeId: '', startTime: '', endTime: '',
+};
+
+/** Browsers hand back HH:mm, but some add seconds; the API validates HH:mm. */
+const hhmm = (value: string) => (value ? value.slice(0, 5) : undefined);
+
+export function toActivityBody(draft: ActivityDraft) {
+  return {
+    title: draft.title.trim().slice(0, 150),
+    kind: draft.kind,
+    placeId: draft.placeId || undefined,
+    startTime: hhmm(draft.startTime),
+    endTime: hhmm(draft.endTime),
+  };
+}
+
+/**
+ * The same five fields whether an activity is being added or corrected, so a
+ * typo in a time is fixed where it is shown rather than by deleting and
+ * retyping the whole thing.
+ */
+function ActivityFields({
+  draft, onChange, trip, dayField,
+}: {
+  draft: ActivityDraft;
+  onChange: (next: ActivityDraft) => void;
+  trip: TripDetail;
+  /** Only the edit form shows this — on create the day comes from the tab. */
+  dayField?: React.ReactNode;
+}) {
+  return (
+    <>
+      <div className={cn('grid gap-3', dayField ? 'sm:grid-cols-[minmax(0,1fr)_160px_150px]' : 'sm:grid-cols-[minmax(0,1fr)_180px]')}>
+        <Field label="What did you do?" required>
+          {(id) => (
+            <Input
+              id={id}
+              value={draft.title}
+              maxLength={150}
+              placeholder="Sunset at the north end"
+              onChange={(event) => onChange({ ...draft, title: event.target.value })}
+            />
+          )}
+        </Field>
+        <Field label="Kind">
+          {(id) => (
+            <Dropdown
+              id={id}
+              value={draft.kind}
+              onChange={(next) => onChange({ ...draft, kind: next as ActivityKind })}
+              options={ACTIVITY_KIND.map((value) => ({
+                value, label: ACTIVITY_KIND_META[value].label, icon: ACTIVITY_KIND_META[value].icon,
+              }))}
+            />
+          )}
+        </Field>
+        {dayField}
+      </div>
+
+      {/* The time columns fit a 12-hour locale: Chrome renders "01:00 PM" here,
+          and a narrower box clips the AM/PM segment out of reach. */}
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_146px_146px]">
+        <Field label="Where" hint={trip.places.length ? 'optional' : 'add places first'}>
+          {(id) => (
+            <Dropdown
+              id={id}
+              placeholder={trip.places.length ? 'No particular place' : 'No places added yet'}
+              value={draft.placeId || 'none'}
+              onChange={(next) => onChange({ ...draft, placeId: next === 'none' ? '' : next })}
+              options={[
+                { value: 'none', label: 'No particular place' },
+                ...trip.places.map((entry) => ({
+                  value: entry.place.id,
+                  label: entry.place.name,
+                  icon: placeIcon(entry.place.category),
+                })),
+              ]}
+            />
+          )}
+        </Field>
+        <Field label="From" hint="optional">
+          {(id) => (
+            <input
+              id={id}
+              type="time"
+              value={draft.startTime}
+              onChange={(event) => onChange({ ...draft, startTime: event.target.value })}
+              className="h-11 w-full rounded-xl border border-line bg-ground px-3 text-sm text-ink tnum focus:border-brand focus:outline-none"
+            />
+          )}
+        </Field>
+        <Field label="To" hint="optional">
+          {(id) => (
+            <input
+              id={id}
+              type="time"
+              value={draft.endTime}
+              onChange={(event) => onChange({ ...draft, endTime: event.target.value })}
+              className="h-11 w-full rounded-xl border border-line bg-ground px-3 text-sm text-ink tnum focus:border-brand focus:outline-none"
+            />
+          )}
+        </Field>
+      </div>
+    </>
+  );
+}
 
 export function StepItinerary({
-  trip, onSaveDay, onAddActivity, onRemoveActivity, busy,
+  trip, onSaveDay, onAddActivity, onUpdateActivity, onMoveActivities, onRemoveActivity, busy,
 }: {
   trip: TripDetail;
   onSaveDay: (dayNumber: number, body: { title?: string; summary?: string }) => void;
-  onAddActivity: (dayNumber: number, body: {
-    title: string; kind: ActivityKind; placeId?: string; startTime?: string; endTime?: string;
-  }) => void;
+  onAddActivity: (dayNumber: number, body: ReturnType<typeof toActivityBody>) => void;
+  onUpdateActivity: (
+    activityId: string,
+    body: ReturnType<typeof toActivityBody> & { dayNumber?: number },
+  ) => Promise<void> | void;
+  onMoveActivities: (activityIds: string[], dayNumber: number) => Promise<void> | void;
   onRemoveActivity: (activityId: string) => void;
   busy?: boolean;
 }) {
@@ -503,6 +672,9 @@ export function StepItinerary({
   );
   const [selected, setSelected] = useState(1);
   const [form, setForm] = useState(EMPTY_ACTIVITY);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [moveTo, setMoveTo] = useState('');
 
   const day = trip.itinerary.find((entry) => entry.dayNumber === selected);
   const [title, setTitle] = useState(day?.title ?? '');
@@ -525,14 +697,7 @@ export function StepItinerary({
 
   const submit = () => {
     if (!form.title.trim()) return;
-    onAddActivity(selected, {
-      title: form.title.trim().slice(0, 150),
-      kind: form.kind,
-      placeId: form.placeId || undefined,
-      // Some browsers hand back HH:mm:ss; the API validates HH:mm exactly.
-      startTime: form.startTime ? form.startTime.slice(0, 5) : undefined,
-      endTime: form.endTime ? form.endTime.slice(0, 5) : undefined,
-    });
+    onAddActivity(selected, toActivityBody(form));
     setForm(EMPTY_ACTIVITY);
   };
 
@@ -548,7 +713,7 @@ export function StepItinerary({
             <button
               key={dayNumber}
               type="button"
-              onClick={() => setSelected(dayNumber)}
+              onClick={() => { setSelected(dayNumber); setPicked([]); setEditing(null); }}
               className={cn(
                 'flex shrink-0 flex-col items-start rounded-xl border px-3 py-1.5 text-left transition',
                 dayNumber === selected
@@ -598,39 +763,67 @@ export function StepItinerary({
         </Field>
       </div>
 
+      {picked.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-brand/40 bg-brand-soft px-3 py-2">
+          <span className="text-[13px] font-semibold tnum">
+            {picked.length} selected
+          </span>
+          <span className="text-[13px] text-ink-soft">move to</span>
+          <Dropdown
+            size="sm"
+            className="w-[150px]"
+            placeholder="Pick a day"
+            value={moveTo}
+            onChange={setMoveTo}
+            options={Array.from({ length: dayCount }, (_, i) => i + 1)
+              .filter((dayNumber) => dayNumber !== selected)
+              .map((dayNumber) => ({
+                value: String(dayNumber),
+                label: `Day ${dayNumber}`,
+                hint: formatDate(dateForDay(trip.startDate, dayNumber)) ?? undefined,
+              }))}
+          />
+          <Button
+            size="sm"
+            disabled={!moveTo || busy}
+            onClick={async () => {
+              await onMoveActivities(picked, Number(moveTo));
+              setPicked([]);
+              setMoveTo('');
+            }}
+          >
+            Move
+          </Button>
+          <button
+            type="button"
+            onClick={() => setPicked([])}
+            className="ml-auto text-xs font-medium text-ink-faint hover:text-ink"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {activities.length > 0 && (
         <ul className="space-y-1.5">
-          {activities.map((activity) => {
-            const meta = activityMeta(activity.kind);
-            return (
-              <li
-                key={activity.id}
-                className="flex items-center gap-2.5 rounded-xl border border-line-soft bg-surface px-3 py-2.5"
-              >
-                <span className="tnum w-[52px] shrink-0 text-xs font-semibold text-ink-faint">
-                  {activity.startTime ?? '—'}
-                </span>
-                <IconTile name={meta.icon} size="sm" tone="neutral" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">{activity.title}</span>
-                  <span className="block truncate text-2xs text-ink-faint">
-                    {[activity.place?.name ?? meta.label,
-                      activity.endTime ? timeRange(activity.startTime, activity.endTime) : null]
-                      .filter(Boolean).join(' · ')}
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => onRemoveActivity(activity.id)}
-                  disabled={busy}
-                  aria-label={`Remove ${activity.title}`}
-                  className="shrink-0 rounded p-1 text-ink-faint hover:bg-danger-soft hover:text-danger"
-                >
-                  <Icon name="trash" size={15} />
-                </button>
-              </li>
-            );
-          })}
+          {activities.map((activity) => (
+            <ActivityRow
+              key={activity.id}
+              activity={activity}
+              trip={trip}
+              busy={busy}
+              day={selected}
+              dayCount={dayCount}
+              selected={picked.includes(activity.id)}
+              onSelect={(on) => setPicked((current) =>
+                on ? [...current, activity.id] : current.filter((id) => id !== activity.id))}
+              editing={editing === activity.id}
+              onEdit={() => setEditing(activity.id)}
+              onCancel={() => setEditing(null)}
+              onSave={async (body) => { await onUpdateActivity(activity.id, body); setEditing(null); }}
+              onRemove={() => onRemoveActivity(activity.id)}
+            />
+          ))}
         </ul>
       )}
 
@@ -661,7 +854,9 @@ export function StepItinerary({
           </Field>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_110px_110px]">
+        {/* The time columns fit a 12-hour locale: Chrome renders "01:00 PM" here,
+          and a narrower box clips the AM/PM segment out of reach. */}
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_146px_146px]">
           <Field label="Where" hint={trip.places.length ? 'optional' : 'add places first'}>
             {(id) => (
               <Dropdown
@@ -714,6 +909,134 @@ export function StepItinerary({
         travellers can follow the same day in the same order.
       </p>
     </div>
+  );
+}
+
+/** A row that becomes its own edit form in place, so nothing has to be retyped. */
+function ActivityRow({
+  activity, trip, busy, editing, day, dayCount, selected, onSelect,
+  onEdit, onCancel, onSave, onRemove,
+}: {
+  activity: TripDay['activities'][number];
+  trip: TripDetail;
+  busy?: boolean;
+  editing: boolean;
+  day: number;
+  dayCount: number;
+  selected: boolean;
+  onSelect: (next: boolean) => void;
+  onEdit: () => void;
+  onCancel: () => void;
+  onSave: (body: ReturnType<typeof toActivityBody> & { dayNumber?: number }) => void | Promise<void>;
+  onRemove: () => void;
+}) {
+  const [draft, setDraft] = useState<ActivityDraft>(EMPTY_ACTIVITY);
+  const [movingTo, setMovingTo] = useState(day);
+  const [saving, setSaving] = useState(false);
+  const meta = activityMeta(activity.kind);
+
+  // Reload the form from the server every time it opens, so a cancelled edit
+  // never leaves stale values behind.
+  useEffect(() => {
+    if (!editing) return;
+    setDraft({
+      title: activity.title,
+      kind: activity.kind,
+      placeId: activity.place?.id ?? '',
+      startTime: activity.startTime ?? '',
+      endTime: activity.endTime ?? '',
+    });
+    setMovingTo(day);
+  }, [editing, activity, day]);
+
+  if (!editing) {
+    return (
+      <li className={cn(
+        'flex items-center gap-2.5 rounded-xl border bg-surface px-3 py-2.5 transition-colors',
+        selected ? 'border-brand/50 ring-1 ring-inset ring-brand/15' : 'border-line-soft',
+      )}>
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={(event) => onSelect(event.target.checked)}
+          aria-label={`Select ${activity.title}`}
+          className="h-4 w-4 shrink-0 accent-[rgb(var(--c-brand))]"
+        />
+        <span className="tnum w-[52px] shrink-0 text-xs font-semibold text-ink-faint">
+          {activity.startTime ?? '\u2014'}
+        </span>
+        <IconTile name={meta.icon} size="sm" tone="neutral" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium">{activity.title}</span>
+          <span className="block truncate text-2xs text-ink-faint">
+            {[activity.place?.name ?? meta.label,
+              activity.endTime ? timeRange(activity.startTime, activity.endTime) : null]
+              .filter(Boolean).join(' \u00b7 ')}
+          </span>
+        </span>
+        <button
+          type="button" onClick={onEdit} disabled={busy}
+          aria-label={`Edit ${activity.title}`}
+          className="shrink-0 rounded p-1 text-ink-faint hover:bg-sunk hover:text-ink"
+        >
+          <Icon name="edit" size={15} />
+        </button>
+        <button
+          type="button" onClick={onRemove} disabled={busy}
+          aria-label={`Remove ${activity.title}`}
+          className="shrink-0 rounded p-1 text-ink-faint hover:bg-danger-soft hover:text-danger"
+        >
+          <Icon name="trash" size={15} />
+        </button>
+      </li>
+    );
+  }
+
+  return (
+    <li className="space-y-3 rounded-xl border border-brand/40 bg-surface p-3 ring-1 ring-inset ring-brand/15">
+      <ActivityFields
+        draft={draft}
+        onChange={setDraft}
+        trip={trip}
+        dayField={
+          <Field label="Day">
+            {(id) => (
+              <Dropdown
+                id={id}
+                value={String(movingTo)}
+                onChange={(next) => setMovingTo(Number(next))}
+                options={Array.from({ length: dayCount }, (_, i) => ({
+                  value: String(i + 1),
+                  label: `Day ${i + 1}`,
+                  hint: formatDate(dateForDay(trip.startDate, i + 1)) ?? undefined,
+                }))}
+              />
+            )}
+          </Field>
+        }
+      />
+      <div className="flex items-center justify-end gap-2">
+        <Button variant="ghost" size="sm" onClick={onCancel} disabled={saving}>Cancel</Button>
+        <Button
+          size="sm"
+          loading={saving}
+          disabled={!draft.title.trim()}
+          onClick={async () => {
+            setSaving(true);
+            try {
+              // Omitted when unchanged: sending the current day is a no-op
+              // server-side, but there is no reason to ask for one.
+              await onSave({
+                ...toActivityBody(draft),
+                ...(movingTo !== day ? { dayNumber: movingTo } : {}),
+              });
+            } finally { setSaving(false); }
+          }}
+        >
+          Save changes
+        </Button>
+      </div>
+    </li>
   );
 }
 

@@ -14,7 +14,7 @@ import { StepNav, type StepNavItem } from './StepNav';
 import { ErrorState } from '@/components/layout/States';
 import { useToast } from '@/components/ui/Toast';
 import type {
-  CreateTripBody, ExpenseInput, RatingType, StayInput, TripDetail,
+  CreateTripBody, ExpenseInput, PlaceSummary, RatingType, StayInput, TripDetail,
 } from '@/api/types';
 import {
   StepDates, StepDestination, StepExpenses, StepExperience, StepItinerary, StepPhotos,
@@ -57,6 +57,7 @@ export function CreateTripPage() {
     expenseMode: 'DETAILED', visibility: 'PUBLIC', expenseVisibility: 'PUBLIC',
   });
   const [lines, setLines] = useState<ExpenseInput[]>([]);
+  const [destinations, setDestinations] = useState<PlaceSummary[]>([]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [publishProblems, setPublishProblems] = useState<string[]>([]);
@@ -72,6 +73,7 @@ export function CreateTripPage() {
     if (!trip.data || !routeId || hydrated.current) return;
     hydrated.current = true;
     setDraft((current) => ({ ...current, ...pickBody(trip.data!) }));
+    setDestinations(trip.data.destinations ?? []);
     if (trip.data.expenses?.byCategory.length) {
       setLines(
         trip.data.expenses.byCategory.flatMap((entry) =>
@@ -95,14 +97,13 @@ export function CreateTripPage() {
       countryCode: t.countryCode,
       country: t.country,
       state: t.state ?? undefined,
-      destination: t.destination,
-      destinationId: undefined,
       adults: t.adults,
       children: t.children,
       infants: t.infants,
       currency: t.currency,
       travelStyles: t.travelStyles,
     }));
+    setDestinations(t.destinations ?? []);
     toast('Pre-filled from that trip — set your own dates');
   }, [template.data, routeId, toast]);
 
@@ -137,13 +138,22 @@ export function CreateTripPage() {
   const persist = useCallback(async (): Promise<string | undefined> => {
     setSaving(true);
     try {
+      // The server joins the destination names for the card label and works out
+      // the state, so neither is sent. A PATCH replaces the whole set — which
+      // is why an empty list is omitted rather than sent: a trip from before
+      // multi-destination support arrives with none, and sending [] would wipe
+      // the label the server derived from its old destinationId.
+      const body = { ...draft };
+      if (destinations.length) body.destinationIds = destinations.map((place) => place.id);
       if (!tripId) {
-        const created = await tripsApi.create(draft as CreateTripBody);
+        const created = await tripsApi.create(body as CreateTripBody);
         setTripId(created.id);
+        setDestinations(created.destinations ?? []);
         queryClient.setQueryData(keys.trip(created.id), created);
         return created.id;
       }
-      const updated = await tripsApi.update(tripId, draft);
+      const updated = await tripsApi.update(tripId, body);
+      setDestinations(updated.destinations ?? []);
       queryClient.setQueryData(keys.trip(tripId), updated);
       return tripId;
     } catch (error) {
@@ -152,10 +162,10 @@ export function CreateTripPage() {
     } finally {
       setSaving(false);
     }
-  }, [draft, tripId, queryClient, toast]);
+  }, [draft, destinations, tripId, queryClient, toast]);
 
   const destinationOk = !!(
-    draft.title?.trim() && draft.countryCode && draft.country && draft.destination?.trim()
+    draft.title?.trim() && draft.countryCode && draft.country && destinations.length > 0
   );
   const datesOk = !!(draft.startDate && draft.endDate && draft.endDate >= draft.startDate);
 
@@ -193,13 +203,13 @@ export function CreateTripPage() {
   const canAdvance = useMemo(() => {
     switch (STEPS[step].id) {
       case 'destination':
-        return !!(draft.title?.trim() && draft.countryCode && draft.country && draft.destination?.trim());
+        return destinationOk;
       case 'dates':
         return !!(draft.startDate && draft.endDate && draft.endDate >= draft.startDate);
       default:
         return true;
     }
-  }, [step, draft]);
+  }, [step, draft, destinationOk]);
 
   const next = async () => {
     // Steps 1-3 build the draft; from there on every step needs a trip id.
@@ -373,6 +383,8 @@ export function CreateTripPage() {
             withRefresh={withRefresh}
             withCoverRefresh={withCoverRefresh}
             tripId={tripId}
+            destinations={destinations}
+            setDestinations={setDestinations}
           />
         )}
       </div>
@@ -416,7 +428,7 @@ export function CreateTripPage() {
 }
 
 const HEADINGS: Record<(typeof STEPS)[number]['id'], { title: string; subtitle: string }> = {
-  destination: { title: 'Where did you go?', subtitle: 'Country, region and the destination as you would describe it.' },
+  destination: { title: 'Where did you go?', subtitle: 'Add every destination the trip covered — the card and the state follow from them.' },
   dates: { title: 'When were you there?', subtitle: 'Duration and season are worked out from these.' },
   travelers: { title: 'Who went?', subtitle: 'This is what every per-person figure divides by.' },
   styles: { title: 'What kind of trip was it?', subtitle: 'This is how travellers like you will find it.' },
@@ -432,7 +444,7 @@ const HEADINGS: Record<(typeof STEPS)[number]['id'], { title: string; subtitle: 
 
 function StepBody({
   id, draft, patch, trip, meta, lines, setLines, uploading, uploadPhotos,
-  withRefresh, withCoverRefresh, tripId,
+  withRefresh, withCoverRefresh, tripId, destinations, setDestinations,
 }: {
   id: (typeof STEPS)[number]['id'];
   draft: Partial<CreateTripBody>;
@@ -446,10 +458,19 @@ function StepBody({
   withRefresh: (action: () => Promise<unknown>, success?: string) => Promise<void>;
   withCoverRefresh: (action: () => Promise<unknown>, success?: string) => Promise<void>;
   tripId: string | undefined;
+  destinations: PlaceSummary[];
+  setDestinations: (next: PlaceSummary[]) => void;
 }) {
   switch (id) {
     case 'destination':
-      return <StepDestination draft={draft} onChange={patch} />;
+      return (
+        <StepDestination
+          draft={draft}
+          onChange={patch}
+          destinations={destinations}
+          onDestinationsChange={setDestinations}
+        />
+      );
     case 'dates':
       return (
         <StepDates
@@ -483,6 +504,18 @@ function StepBody({
           }
           onAddActivity={(dayNumber, body) =>
             withRefresh(() => tripsApi.addActivity(trip.id, dayNumber, body), 'Added to the day')
+          }
+          onUpdateActivity={(activityId, body) =>
+            withRefresh(
+              () => tripsApi.updateActivity(trip.id, activityId, body),
+              body.dayNumber ? `Moved to day ${body.dayNumber}` : 'Activity updated',
+            )
+          }
+          onMoveActivities={(activityIds, dayNumber) =>
+            withRefresh(
+              () => tripsApi.moveActivities(trip.id, activityIds, dayNumber),
+              `${activityIds.length} moved to day ${dayNumber}`,
+            )
           }
           onRemoveActivity={(activityId) =>
             withRefresh(() => tripsApi.removeActivity(trip.id, activityId), 'Removed')
@@ -560,7 +593,6 @@ function pickBody(trip: TripDetail): Partial<CreateTripBody> {
     countryCode: trip.countryCode,
     country: trip.country,
     state: trip.state ?? undefined,
-    destination: trip.destination,
     startDate: toDateInput(trip.startDate),
     endDate: toDateInput(trip.endDate),
     adults: trip.adults,

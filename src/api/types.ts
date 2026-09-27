@@ -200,6 +200,8 @@ export interface PlaceSummary {
   latitude: number | null;
   longitude: number | null;
   experienceCount: number;
+  /** A place travellers pick as a trip destination (South Goa), not a spot they visit (Cola Beach). */
+  isDestination: boolean;
 }
 
 export interface CriteriaRating {
@@ -254,8 +256,12 @@ export interface TripCard {
   title: string;
   country: string;
   countryCode: string;
+  /** null when the trip's destinations span more than one state. */
   state: string | null;
+  /** Card label. Joined from `destinations` unless the author set one. */
   destination: string;
+  /** Everywhere the trip went, in order. Empty only for pre-multi-destination trips. */
+  destinations: PlaceSummary[];
   startDate: string;
   endDate: string;
   /** Derived server-side. Never compute these. */
@@ -504,8 +510,13 @@ export interface CreateTripBody {
   title: string;
   countryCode: string;
   country: string;
+  /** Optional — derived from the destinations, and left null when they disagree. */
   state?: string;
-  destination: string;
+  /** Optional when destinationIds is given; the server joins the names instead. */
+  destination?: string;
+  /** Canonical places this trip was to, in display order. Max 10. A PATCH replaces the whole set. */
+  destinationIds?: string[];
+  /** @deprecated Use destinationIds. Mirrors destinations[0] on read. */
   destinationId?: string;
   startDate: string;
   endDate: string;

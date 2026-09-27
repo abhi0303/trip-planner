@@ -72,8 +72,14 @@ export const placesApi = {
 
   popular: (limit = 12) => api<PlaceSummary[]>(`/places/popular${qs({ limit })}`),
 
+  /** States that have published trips — note it returns states, not places. */
   destinations: (countryCode: string) =>
-    api<PlaceSummary[]>(`/places/destinations${qs({ countryCode })}`),
+    api<Array<{ countryCode: string; country: string; state: string; tripCount: number }>>(
+      `/places/destinations${qs({ countryCode })}`),
+
+  /** Every state the place catalogue knows in this country. */
+  states: (countryCode: string) =>
+    api<Array<{ state: string; placeCount: number }>>(`/places/states${qs({ countryCode })}`),
 
   detail: (idOrSlug: string) => api<PlaceDetail>(`/places/${idOrSlug}`),
 
@@ -217,6 +223,16 @@ export const tripsApi = {
 
   removeActivity: (tripId: string, activityId: string) =>
     api<{ message: string }>(`/trips/${tripId}/itinerary/activities/${activityId}`, { method: 'DELETE' }),
+
+  /**
+   * Moves several activities to one day in a single transaction — an unknown id
+   * rejects the whole set. Returns the full itinerary, since both the source and
+   * the target day changed.
+   */
+  moveActivities: (tripId: string, activityIds: string[], dayNumber: number) =>
+    api<TripDay[]>(`/trips/${tripId}/itinerary/activities/move`, {
+      method: 'PUT', body: { activityIds, dayNumber },
+    }),
 };
 
 // --------------------------------------------------------------- posts, feed

@@ -20,7 +20,7 @@ export interface Option<T extends string = string> {
  */
 export function Dropdown<T extends string = string>({
   value, onChange, options, placeholder = 'Select…', id, className,
-  searchable, disabled, size = 'md', align = 'start',
+  searchable, onSearch, searchPlaceholder = 'Filter…', disabled, size = 'md', align = 'start',
 }: {
   value: T | undefined;
   onChange: (value: T) => void;
@@ -29,6 +29,9 @@ export function Dropdown<T extends string = string>({
   id?: string;
   className?: string;
   searchable?: boolean;
+  /** Notified as the filter is typed, for options that come from a lookup. */
+  onSearch?: (query: string) => void;
+  searchPlaceholder?: string;
   disabled?: boolean;
   size?: 'sm' | 'md';
   align?: 'start' | 'end';
@@ -45,10 +48,12 @@ export function Dropdown<T extends string = string>({
   const selected = options.find((option) => option.value === value);
 
   const visible = useMemo(() => {
-    if (!searchable || !query.trim()) return options;
+    // With onSearch the list is already the answer to the query; filtering it
+    // again locally would hide results the lookup just returned.
+    if (!searchable || !query.trim() || onSearch) return options;
     const needle = query.trim().toLowerCase();
     return options.filter((option) => option.label.toLowerCase().includes(needle));
-  }, [options, query, searchable]);
+  }, [options, query, searchable, onSearch]);
 
   const place = () => {
     if (trigger.current) setRect(trigger.current.getBoundingClientRect());
@@ -193,8 +198,12 @@ export function Dropdown<T extends string = string>({
                 <input
                   ref={searchInput}
                   value={query}
-                  onChange={(event) => { setQuery(event.target.value); setActive(0); }}
-                  placeholder="Filter…"
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    setActive(0);
+                    onSearch?.(event.target.value);
+                  }}
+                  placeholder={searchPlaceholder}
                   className="h-8 w-full rounded-lg bg-sunk pl-8 pr-2 text-[13px] outline-none placeholder:text-ink-faint"
                 />
               </div>

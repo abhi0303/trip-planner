@@ -8,7 +8,7 @@ import { ApiError } from '@/api/client';
 import { tripsApi } from '@/api/endpoints';
 import { cn } from '@/lib/cn';
 import { duration, formatDateRange, travelers } from '@/lib/format';
-import { CROWD_META, SEASON_META, VISIBILITY_META, WEATHER_META, styleMeta } from '@/lib/labels';
+import { CROWD_META, SEASON_META, VISIBILITY_META, WEATHER_META, placeIcon, styleMeta } from '@/lib/labels';
 import { Avatar, Badge, Skeleton } from '@/components/ui/Bits';
 import { meshGradient } from '@/lib/visual';
 import { Button } from '@/components/ui/Button';
@@ -90,7 +90,20 @@ export function TripDetailPage() {
 
           <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <Badge tone="glass"><Icon name="pin" size={11} />{t.destination}</Badge>
+              {/* One badge per destination, each linking to its place page.
+                  Pre-multi-destination trips have none, so fall back to the label. */}
+              {t.destinations.length > 0 ? (
+                t.destinations.map((place) => (
+                  <Link key={place.id} to={`/places/${place.slug}`}>
+                    <Badge tone="glass" className="transition-colors hover:bg-black/60">
+                      <Icon name={placeIcon(place.category)} size={11} />
+                      {place.name}
+                    </Badge>
+                  </Link>
+                ))
+              ) : (
+                <Badge tone="glass"><Icon name="pin" size={11} />{t.destination}</Badge>
+              )}
               {t.season && (
                 <Badge tone="glass" className="capitalize">
                   <Icon name={SEASON_META[t.season].icon} size={11} />

@@ -4,6 +4,7 @@ import {
 import {
   placesApi, postsApi, savedApi, searchApi, tripsApi, usersApi,
 } from './endpoints';
+import { geocode } from '@/lib/geocode';
 import type { FeedType, Post, TripCard, TripFilters } from './types';
 
 /** One place for every cache key, so invalidation never guesses. */
@@ -109,6 +110,29 @@ export const usePlaceSearch = (q: string, params: { countryCode?: string; destin
     queryFn: () => placesApi.search({ q, ...params, limit: 10 }),
     enabled: q.trim().length >= 2,
     staleTime: 5 * 60 * 1000,
+  });
+
+/** Real states for a country, so the field never takes an invented spelling. */
+export const useStates = (countryCode: string | undefined) =>
+  useQuery({
+    queryKey: ['places', 'states', countryCode ?? null],
+    queryFn: () => placesApi.states(countryCode!),
+    enabled: !!countryCode,
+    staleTime: 60 * 60 * 1000,
+  });
+
+/**
+ * Map suggestions, used only to fill the gap when the catalogue has no match.
+ * `retry: false` on purpose: this is a nice-to-have against a third-party
+ * service, and a failure should quietly leave the plain "add it anyway" path.
+ */
+export const useGeoSearch = (q: string, countryCode: string | undefined, enabled = true) =>
+  useQuery({
+    queryKey: ['geocode', q, countryCode ?? null],
+    queryFn: ({ signal }) => geocode(q, { countryCode, signal }),
+    enabled: enabled && q.trim().length >= 2,
+    staleTime: 30 * 60 * 1000,
+    retry: false,
   });
 
 // --------------------------------------------------------------------- users
