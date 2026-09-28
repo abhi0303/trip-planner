@@ -21,8 +21,8 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
       return (
         <EmptyState
           icon="compass"
-          title="Not here"
-          body="This either does not exist, or the traveller keeps it private."
+          title="No longer available"
+          body="It may have been deleted, or the traveller keeps it private."
           action={<Button to="/explore" variant="outline">Explore trips</Button>}
         />
       );

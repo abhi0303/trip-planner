@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { ErrorState } from '@/components/layout/States';
 import { ExpenseHidden, ExpensePanel } from '@/components/trip/ExpensePanel';
+import { DeleteTripDialog } from '@/components/trip/DeleteTrip';
 import {
   ExperienceNotes, Itinerary, PhotoGrid, PlacesRoute, RatingGroups, RealityChecks, Stays,
 } from '@/components/trip/TripSections';
@@ -31,6 +32,7 @@ export function TripDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   /**
    * Photo edits change the trip's cover, so every surface that renders one has
@@ -194,6 +196,15 @@ export function TripDetailPage() {
           <div className="flex shrink-0 items-center gap-1.5 max-sm:w-full max-sm:[&>*]:flex-1">
             {t.isOwner ? (
               <>
+                <Button
+                  variant="ghost"
+                  size="iconSm"
+                  onClick={() => setDeleting(true)}
+                  aria-label="Delete trip"
+                  className="text-ink-faint hover:bg-danger/10 hover:text-danger max-sm:!flex-none"
+                >
+                  <Icon name="trash" size={16} />
+                </Button>
                 <Button to={`/trips/${t.id}/edit`} variant="outline" size="sm">
                   <Icon name="edit" size={15} /> Edit
                 </Button>
@@ -289,6 +300,14 @@ export function TripDetailPage() {
           {t.publishedAt && <span>Published {formatDate(t.publishedAt)}</span>}
         </footer>
       </div>
+      {t.isOwner && (
+        <DeleteTripDialog
+          trip={t}
+          open={deleting}
+          onClose={() => setDeleting(false)}
+          onDeleted={() => navigate(`/@${t.user.username}`, { replace: true })}
+        />
+      )}
     </article>
   );
 }

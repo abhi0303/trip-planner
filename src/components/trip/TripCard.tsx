@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { duration, formatDateRange, moneyShort, travelers } from '@/lib/format';
@@ -10,6 +11,7 @@ import { useAuth } from '@/store/auth';
 import { useSaveTripMutation } from '@/api/queries';
 import type { TripCard as TripCardType } from '@/api/types';
 import { SmartImage } from '@/components/ui/SmartImage';
+import { DeleteTripDialog } from './DeleteTrip';
 
 export function TripCard({
   trip, className, style,
@@ -18,8 +20,11 @@ export function TripCard({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const { signedIn } = useAuth();
+  const { signedIn, user } = useAuth();
   const save = useSaveTripMutation();
+  const [deleting, setDeleting] = useState(false);
+  // Saving your own trip means nothing; its corner button deletes instead.
+  const isOwner = !!user && user.id === trip.user.id;
 
   // null means the traveller hid their spending — never render it as zero.
   const spendHidden = trip.totalExpense === null;
@@ -59,7 +64,18 @@ export function TripCard({
             {trip.season && <Badge tone="glass" className="capitalize">{trip.season.toLowerCase()}</Badge>}
           </div>
 
-          {signedIn && (
+          {isOwner ? (
+            <FloatButton
+              aria-label="Delete trip"
+              className="hover:!bg-danger"
+              onClick={(event) => {
+                event.preventDefault();
+                setDeleting(true);
+              }}
+            >
+              <Icon name="trash" size={16} strokeWidth={1.9} />
+            </FloatButton>
+          ) : signedIn && (
             <FloatButton
               active={!!trip.isSaved}
               aria-label={trip.isSaved ? 'Remove from saved' : 'Save trip'}
@@ -135,6 +151,8 @@ export function TripCard({
           {trip.travelStyles.length > 4 && <Badge tone="neutral">+{trip.travelStyles.length - 4}</Badge>}
         </div>
       )}
+
+      {isOwner && <DeleteTripDialog trip={trip} open={deleting} onClose={() => setDeleting(false)} />}
     </article>
   );
 }
