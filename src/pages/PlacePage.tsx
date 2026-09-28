@@ -205,7 +205,7 @@ function Aggregates({
       {a.hasEnoughData && a.ratingBreakdown.length > 0 && (
         <div>
           <h3 className="eyebrow mb-2.5">How travellers rate it</h3>
-          <dl className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
+          <dl className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
             {a.ratingBreakdown.map((entry) => (
               <div key={entry.criteria} className="flex items-center gap-3">
                 <dt className="w-28 shrink-0 truncate text-[13px] text-ink-soft">{criteriaLabel(entry.criteria)}</dt>

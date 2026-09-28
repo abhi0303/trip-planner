@@ -7,7 +7,7 @@ import { track } from '@/lib/busy';
 import { ApiError } from '@/api/client';
 import { tripsApi } from '@/api/endpoints';
 import { cn } from '@/lib/cn';
-import { duration, formatDateRange, travelers } from '@/lib/format';
+import { duration, formatDate, formatDateRange, travelers } from '@/lib/format';
 import { CROWD_META, SEASON_META, VISIBILITY_META, WEATHER_META, placeIcon, styleMeta } from '@/lib/labels';
 import { Avatar, Badge, Skeleton } from '@/components/ui/Bits';
 import { meshGradient } from '@/lib/visual';
@@ -178,16 +178,19 @@ export function TripDetailPage() {
         )}
 
         {/* ------------------------------------------------------ byline */}
-        <div className="mt-6 flex items-center gap-3 rounded-2xl bg-surface p-3.5 ring-1 ring-inset ring-line-soft">
-          <Avatar user={t.user} size="md" />
-          <div className="min-w-0 flex-1">
-            <Link to={`/@${t.user.username}`} className="block truncate text-sm font-semibold hover:text-brand">
-              {t.user.name}
-            </Link>
-            <p className="truncate text-xs text-ink-faint">@{t.user.username}</p>
+        {/* On a phone the actions drop to their own row, so the name is not squeezed to a letter. */}
+        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-2xl bg-surface p-3.5 ring-1 ring-inset ring-line-soft">
+          <div className="flex min-w-[180px] flex-1 items-center gap-3">
+            <Avatar user={t.user} size="md" />
+            <div className="min-w-0 flex-1">
+              <Link to={`/@${t.user.username}`} className="block truncate text-sm font-semibold hover:text-brand">
+                {t.user.name}
+              </Link>
+              <p className="truncate text-xs text-ink-faint">@{t.user.username}</p>
+            </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1.5 max-sm:w-full max-sm:[&>*]:flex-1">
             {t.isOwner ? (
               <>
                 <Button to={`/trips/${t.id}/edit`} variant="outline" size="sm">
@@ -282,7 +285,7 @@ export function TripDetailPage() {
         <footer className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line-soft pt-4 text-xs text-ink-faint">
           <span className="tnum">{t.viewCount} views</span>
           <span className="tnum">{t.saveCount} saves</span>
-          {t.publishedAt && <span>Published {formatDateRange(t.publishedAt.slice(0, 10), t.publishedAt.slice(0, 10)).split(' – ')[0]}</span>}
+          {t.publishedAt && <span>Published {formatDate(t.publishedAt)}</span>}
         </footer>
       </div>
     </article>

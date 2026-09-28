@@ -67,11 +67,11 @@ function PlaceRail() {
             key={place.id}
             to={`/places/${place.slug}`}
             style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}
-            className="group ring-gradient flex shrink-0 animate-fade-up items-center gap-3 rounded-pill bg-surface py-2 pl-2 pr-5 ring-1 ring-inset ring-line-soft transition-all duration-300 ease-spring hover:-translate-y-0.5 hover:shadow-card"
+            className="group ring-gradient flex max-w-[260px] shrink-0 animate-fade-up items-center gap-3 rounded-pill bg-surface py-2 pl-2 pr-5 ring-1 ring-inset ring-line-soft transition-all duration-300 ease-spring hover:-translate-y-0.5 hover:shadow-card"
           >
             <IconTile name={placeIcon(place.category)} size="sm" className="rounded-full" />
-            <span>
-              <span className="block whitespace-nowrap text-[13.5px] font-semibold transition-colors group-hover:text-brand">
+            <span className="min-w-0">
+              <span className="block truncate text-[13.5px] font-semibold transition-colors group-hover:text-brand">
                 {place.name}
               </span>
               <span className="tnum block whitespace-nowrap text-2xs text-ink-faint">

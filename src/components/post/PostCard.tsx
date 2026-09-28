@@ -73,8 +73,12 @@ export function PostCard({ post }: { post: Post }) {
         <div className="relative aspect-[4/5] bg-sunk">
           <img src={media[index].url} alt="" className="h-full w-full object-cover" loading="lazy" />
           {post.place && (
-            <span className="absolute left-3 top-3">
-              <Badge tone="glass"><Icon name="pin" size={11} />{post.place.name}</Badge>
+            // Stops short of the photo counter in the top-right corner.
+            <span className="absolute left-3 right-16 top-3 flex">
+              <Badge tone="glass" className="min-w-0 max-w-full">
+                <Icon name="pin" size={11} />
+                <span className="truncate">{post.place.name}</span>
+              </Badge>
             </span>
           )}
 

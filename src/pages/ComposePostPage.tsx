@@ -55,7 +55,7 @@ function TripChooser({ onPick }: { onPick: (tripId: string) => void }) {
       {trips.isError ? (
         <ErrorState error={trips.error} onRetry={() => trips.refetch()} />
       ) : trips.isLoading ? (
-        <div className="grid gap-2.5 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           <TripCardSkeleton />
           <TripCardSkeleton />
         </div>
@@ -66,7 +66,7 @@ function TripChooser({ onPick }: { onPick: (tripId: string) => void }) {
           action={<Button to="/create" size="lg" shine><Icon name="plus" size={18} /> Create a trip</Button>}
         />
       ) : (
-        <ul className="grid gap-2.5 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           {all.map((trip) => (
             <li key={trip.id}>
               <button
@@ -276,7 +276,7 @@ function Compose({ tripId, onBack }: { tripId: string; onBack?: () => void }) {
           )}
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="About one place?" hint="optional">
             {(id) => (
               <Dropdown

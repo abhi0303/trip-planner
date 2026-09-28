@@ -143,7 +143,7 @@ export function SearchPage() {
 
 function ListSkeleton() {
   return (
-    <ul className="grid gap-1.5 sm:grid-cols-2" aria-hidden>
+    <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2" aria-hidden>
       {Array.from({ length: 6 }, (_, index) => (
         <li key={index} className="flex items-center gap-3 rounded-2xl bg-surface px-3.5 py-3 ring-1 ring-inset ring-line-soft">
           <div className="skeleton h-10 w-10 shrink-0 rounded-xl" />
@@ -160,7 +160,7 @@ function ListSkeleton() {
 function PlaceList({ places }: { places: PlaceSummary[] }) {
   if (!places.length) return <EmptyState icon="pin" title="No places found" />;
   return (
-    <ul className="grid gap-1.5 sm:grid-cols-2">
+    <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
       {places.map((place) => (
         <li key={place.id}>
           <Link
@@ -187,7 +187,7 @@ function PlaceList({ places }: { places: PlaceSummary[] }) {
 function UserList({ users }: { users: UserSummary[] }) {
   if (!users.length) return <EmptyState icon="user" title="No people found" />;
   return (
-    <ul className="grid gap-1 sm:grid-cols-2">
+    <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
       {users.map((user) => (
         <li key={user.id}>
           <Link to={`/@${user.username}`} className="flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-sunk">

@@ -226,7 +226,7 @@ export function RatingGroups({ groups }: { groups: RatingGroup[] }) {
               </span>
             </div>
 
-            <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+            <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
               {Object.entries(group.scores).map(([criteria, score]) => (
                 <div key={criteria} className="flex items-center gap-2.5">
                   <dt className="w-28 shrink-0 truncate text-[13px] text-ink-soft">{criteriaLabel(criteria)}</dt>
@@ -301,8 +301,8 @@ export function Itinerary({ days }: { days: TripDay[] }) {
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-ink text-2xs font-bold text-ground tnum">
                 {day.dayNumber}
               </span>
-              <h3 className="text-[15px] font-semibold">{day.title ?? `Day ${day.dayNumber}`}</h3>
-              {day.date && <span className="tnum ml-auto text-xs text-ink-faint">{formatDate(day.date)}</span>}
+              <h3 className="min-w-0 text-[15px] font-semibold">{day.title ?? `Day ${day.dayNumber}`}</h3>
+              {day.date && <span className="tnum ml-auto shrink-0 whitespace-nowrap text-xs text-ink-faint">{formatDate(day.date)}</span>}
             </div>
 
             {day.summary && <p className="mb-2 pl-10 text-[13px] leading-relaxed text-ink-soft">{day.summary}</p>}
@@ -319,12 +319,16 @@ export function Itinerary({ days }: { days: TripDay[] }) {
                       {activity.startTime && (
                         <span className="tnum shrink-0 text-xs font-medium text-ink-faint">{activity.startTime}</span>
                       )}
-                      <span className="text-sm font-medium">{activity.title}</span>
-                      {activity.place && (
-                        <Link to={`/places/${activity.place.slug}`} className="truncate text-xs text-brand hover:underline">
-                          {activity.place.name}
-                        </Link>
-                      )}
+                      {/* Inline flow: the place follows the title and wraps beneath it
+                          when the line is full, rather than squeezing the title. */}
+                      <div className="min-w-0 flex-1">
+                        <span className="mr-2 text-sm font-medium">{activity.title}</span>
+                        {activity.place && (
+                          <Link to={`/places/${activity.place.slug}`} className="inline-block max-w-full truncate align-bottom text-xs text-brand hover:underline">
+                            {activity.place.name}
+                          </Link>
+                        )}
+                      </div>
                     </div>
                     {activity.notes && <p className="mt-0.5 text-[13px] text-ink-soft">{activity.notes}</p>}
                   </li>

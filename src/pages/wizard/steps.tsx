@@ -184,7 +184,7 @@ export function StepDates({
 }) {
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Start date" required>
           {(id) => (
             <Input
@@ -333,7 +333,7 @@ export function StepStyles({
         )}
       </Field>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Weather" hint="optional">
           {(id) => (
             <Dropdown
@@ -605,7 +605,7 @@ function ActivityFields({
 
       {/* The time columns fit a 12-hour locale: Chrome renders "01:00 PM" here,
           and a narrower box clips the AM/PM segment out of reach. */}
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_146px_146px]">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_146px_146px]">
         <Field label="Where" hint={trip.places.length ? 'optional' : 'add places first'}>
           {(id) => (
             <Dropdown
@@ -738,7 +738,7 @@ export function StepItinerary({
         })}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Day title" hint="optional">
           {(id) => (
             <Input
@@ -828,7 +828,7 @@ export function StepItinerary({
       )}
 
       <div className="space-y-3 rounded-xl border border-dashed border-line p-3">
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
           <Field label="What did you do?" required>
             {(id) => (
               <Input
@@ -856,7 +856,7 @@ export function StepItinerary({
 
         {/* The time columns fit a 12-hour locale: Chrome renders "01:00 PM" here,
           and a narrower box clips the AM/PM segment out of reach. */}
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_146px_146px]">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_146px_146px]">
           <Field label="Where" hint={trip.places.length ? 'optional' : 'add places first'}>
             {(id) => (
               <Dropdown
@@ -1268,7 +1268,7 @@ export function StepStay({
           )}
         </Field>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Check in">
             {(id) => (
               <Input id={id} type="date" value={toDateInput(form.checkIn)}
@@ -1283,7 +1283,7 @@ export function StepStay({
           </Field>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="What it cost">
             {(id) => (
               <MoneyInput id={id} value={form.amount ?? ''}
@@ -1722,7 +1722,7 @@ function VisibilityPicker({
     <fieldset>
       <legend className="text-[13px] font-medium">{label}</legend>
       {hint && <p className="mb-2 mt-0.5 text-xs text-ink-faint">{hint}</p>}
-      <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
+      <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
         {VISIBILITY.map((option) => {
           const meta = VISIBILITY_META[option];
           const active = value === option;

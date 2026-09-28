@@ -74,7 +74,7 @@ export function AuthPage({ mode }: { mode: Mode }) {
     <div className="relative mx-auto w-full max-w-[1120px] py-2 lg:py-8">
       <FloatingStickers />
 
-      <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_minmax(0,460px)] lg:gap-14">
+      <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[1.05fr_minmax(0,460px)] lg:gap-14">
         <Intro mode={mode} />
 
         {/* Only the form is carded — the left side sits on the page itself. */}

@@ -77,7 +77,7 @@ export function TripFilterBar({
       <div className={cn('grid transition-all duration-200', open ? 'grid-rows-[1fr] pt-4' : 'grid-rows-[0fr]')}>
         <div className="overflow-hidden">
           <div className="space-y-4 rounded-card border border-line-soft bg-surface p-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Budget from">
                 {(id) => (
                   <MoneyInput

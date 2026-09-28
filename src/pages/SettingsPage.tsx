@@ -161,7 +161,7 @@ export function SettingsPage() {
             <hr className="my-6 border-line-soft" />
 
             <form onSubmit={save} className="space-y-5">
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <Field label="Name">
                   {(id) => <Input id={id} value={form.name} onChange={set('name')} maxLength={80} />}
                 </Field>
@@ -177,7 +177,7 @@ export function SettingsPage() {
                 {(id) => <Textarea id={id} value={form.bio} onChange={set('bio')} rows={3} maxLength={300} />}
               </Field>
 
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <Field label="Home country">
                   {(id) => (
                     <Dropdown
@@ -195,7 +195,7 @@ export function SettingsPage() {
                 </Field>
               </div>
 
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <Field label="Website" hint="include https://">
                   {(id) => (
                     <Input id={id} type="url" value={form.websiteUrl} onChange={set('websiteUrl')} placeholder="https://" />
