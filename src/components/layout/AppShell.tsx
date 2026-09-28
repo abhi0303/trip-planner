@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/store/auth';
 import { useTheme } from '@/store/theme';
 import { ErrorBoundary } from './ErrorBoundary';
+import { PullToRefresh } from './PullToRefresh';
 
 interface NavItem {
   to: string;
@@ -86,6 +87,7 @@ export function AppShell() {
       </div>
 
       <MobileDock items={items} profileTo={profileTo} />
+      <PullToRefresh />
     </div>
   );
 }

@@ -306,6 +306,11 @@
   }
 }
 
+/* In the installed app, pull-to-refresh is ours: no browser bounce or reload at the edges. */
+@media (display-mode: standalone) {
+  html, body { overscroll-behavior-y: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after {
