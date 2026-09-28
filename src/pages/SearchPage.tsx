@@ -97,29 +97,63 @@ export function SearchPage() {
             )
           )}
 
+          {/* Each tab settles loading and failure before it may say "none found":
+              an empty list is only an answer once the request has succeeded. */}
           {tab === 'trips' && (
-            <>
-              <TripGrid trips={flatten(trips.data)} loading={trips.isLoading} skeletons={4} />
-              <LoadMore onVisible={() => trips.fetchNextPage()} hasMore={!!trips.hasNextPage} loading={trips.isFetchingNextPage} />
-            </>
+            trips.isError ? (
+              <ErrorState error={trips.error} onRetry={() => trips.refetch()} />
+            ) : (
+              <>
+                <TripGrid trips={flatten(trips.data)} loading={trips.isLoading} skeletons={4} />
+                <LoadMore onVisible={() => trips.fetchNextPage()} hasMore={!!trips.hasNextPage} loading={trips.isFetchingNextPage} />
+              </>
+            )
           )}
 
           {tab === 'places' && (
-            <>
-              <PlaceList places={flatten(places.data)} />
-              <LoadMore onVisible={() => places.fetchNextPage()} hasMore={!!places.hasNextPage} loading={places.isFetchingNextPage} />
-            </>
+            places.isError ? (
+              <ErrorState error={places.error} onRetry={() => places.refetch()} />
+            ) : places.isLoading ? (
+              <ListSkeleton />
+            ) : (
+              <>
+                <PlaceList places={flatten(places.data)} />
+                <LoadMore onVisible={() => places.fetchNextPage()} hasMore={!!places.hasNextPage} loading={places.isFetchingNextPage} />
+              </>
+            )
           )}
 
           {tab === 'people' && (
-            <>
-              <UserList users={flatten(users.data)} />
-              <LoadMore onVisible={() => users.fetchNextPage()} hasMore={!!users.hasNextPage} loading={users.isFetchingNextPage} />
-            </>
+            users.isError ? (
+              <ErrorState error={users.error} onRetry={() => users.refetch()} />
+            ) : users.isLoading ? (
+              <ListSkeleton />
+            ) : (
+              <>
+                <UserList users={flatten(users.data)} />
+                <LoadMore onVisible={() => users.fetchNextPage()} hasMore={!!users.hasNextPage} loading={users.isFetchingNextPage} />
+              </>
+            )
           )}
         </>
       )}
     </div>
+  );
+}
+
+function ListSkeleton() {
+  return (
+    <ul className="grid gap-1.5 sm:grid-cols-2" aria-hidden>
+      {Array.from({ length: 6 }, (_, index) => (
+        <li key={index} className="flex items-center gap-3 rounded-2xl bg-surface px-3.5 py-3 ring-1 ring-inset ring-line-soft">
+          <div className="skeleton h-10 w-10 shrink-0 rounded-xl" />
+          <div className="flex-1 space-y-2">
+            <div className="skeleton h-3 w-2/3" />
+            <div className="skeleton h-2.5 w-1/3" />
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 
