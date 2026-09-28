@@ -149,6 +149,11 @@
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
+    /* Taps act at once: no double-tap zoom and no 300ms wait for one. */
+    touch-action: manipulation;
+    /* Keep iOS from enlarging text on its own when the phone rotates. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
@@ -284,6 +289,21 @@
     filter: blur(18px);
   }
   .group:hover .bloom::before { @apply opacity-60; }
+}
+
+/*
+  iOS zooms the page into any field whose text is under 16px the moment it is
+  tapped, and leaves it zoomed. On touch screens every field is held at 16px,
+  which is the threshold, so focusing never zooms. It has to outrank the
+  text-sm / text-[15px] utilities on the fields themselves, hence !important.
+  No field in the app is set larger than 16px, so nothing grows smaller here.
+*/
+@media (pointer: coarse) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
