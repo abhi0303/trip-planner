@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="TripSphere">
-  <!-- The header mark: gradient-brand tile (135deg, --c-brand to --c-brand-2) with the lucide compass. -->
+  <!-- The header mark: gradient-brand tile (135deg, c-brand to c-brand-2) with the lucide compass. -->
   <defs>
     <linearGradient id="ts-brand" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#0d94a5"/>

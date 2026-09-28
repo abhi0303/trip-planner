@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { flatten, useFeed, usePopularPlaces } from '@/api/queries';
 import { PostCard, PostCardSkeleton } from '@/components/post/PostCard';
 import { ErrorState, LoadMore } from '@/components/layout/States';
+import { InstallPrompt } from '@/components/layout/InstallPrompt';
 import { Button } from '@/components/ui/Button';
 import { EmptyState, Segmented } from '@/components/ui/Bits';
 import nothingHereYet from '@/assets/nothing-here-yet.png';
@@ -23,7 +24,7 @@ const EMPTY_FEED_BODY: Record<FeedType, string | undefined> = {
 };
 
 export function HomePage() {
-  const { signedIn } = useAuth();
+  const { signedIn, loading: authLoading } = useAuth();
   const [type, setType] = useState<FeedType>('for-you');
 
   // following/friends return 403 without a token. Signed out there is only one
@@ -86,6 +87,8 @@ export function HomePage() {
           </div>
         )}
       </div>
+
+      {!signedIn && !authLoading && <InstallPrompt />}
 
       <aside className="hidden lg:block">
         <div className="sticky top-20 space-y-5">

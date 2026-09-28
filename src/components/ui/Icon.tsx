@@ -3,12 +3,12 @@ import {
   BadgeCheck, Banknote, Bed, Binoculars, Bird, BookMarked, Bookmark, Building2,
   Bus, CalendarDays, Camera, Car, Castle, Check, ChevronDown, ChevronLeft,
   ChevronRight, ChevronUp, Church, Clock3, Cloud, CloudFog, CloudRain, CloudSun,
-  Coffee, Coins, Compass, CreditCard, Crown, Droplets, Eye, EyeOff, Flame,
+  Coffee, Coins, Compass, CreditCard, Crown, Download, Droplets, Eye, EyeOff, Flame,
   Flower2, Footprints, Fuel, Gem, Globe2, GripVertical, Heart, Hotel, Images,
   Info, Landmark, Laptop, LayoutGrid, Leaf, LoaderCircle, LogIn, LogOut, Map,
   MapPin, Martini, MessageCircle, Moon, Mountain, Navigation, OctagonAlert,
   PenLine, PersonStanding, Plane, Plus, Route, Search, Send, Settings,
-  SlidersHorizontal, ShieldCheck, ShoppingBag, ShoppingBasket, Snowflake,
+  Share, SlidersHorizontal, ShieldCheck, ShoppingBag, ShoppingBasket, Snowflake,
   Sparkles, Star, Store, Sun, Sunrise, Tent, TentTree, Ticket, TrainFront,
   Trash2, TreePalm, Trees, TrendingUp, TriangleAlert, User, Users, Utensils,
   Umbrella, Wallet, Waves, Wind, X, Lock, Ship,
@@ -45,6 +45,9 @@ const ICONS = {
   comment: MessageCircle,
   share: Send,
   send: Send,
+  /** The iOS Share-sheet glyph, for "Add to Home Screen" instructions. */
+  iosShare: Share,
+  download: Download,
 
   // ---- trip anatomy
   pin: MapPin,

@@ -7,7 +7,10 @@ import { AuthProvider } from './store/auth';
 import { ToastProvider } from './components/ui/Toast';
 import { GlobalLoader } from './components/layout/GlobalLoader';
 import { ApiError } from './api/client';
+import { registerServiceWorker } from './lib/pwa';
 import './styles/index.css';
+
+registerServiceWorker();
 
 const queryClient = new QueryClient({
   defaultOptions: {

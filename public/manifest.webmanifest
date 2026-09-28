@@ -1,0 +1,16 @@
+{
+  "name": "TripSphere",
+  "short_name": "TripSphere",
+  "description": "Document your whole trip as structured, searchable travel data.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d1418",
+  "theme_color": "#0d6a64",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
