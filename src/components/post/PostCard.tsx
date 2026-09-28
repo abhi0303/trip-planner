@@ -10,13 +10,19 @@ import { postsApi } from '@/api/endpoints';
 import { useAuth } from '@/store/auth';
 import { useToast } from '@/components/ui/Toast';
 import type { Post } from '@/api/types';
+import { CommentsSheet } from './CommentsSheet';
 
-export function PostCard({ post }: { post: Post }) {
+/**
+ * `onComment` overrides what the comment button does. By default it opens the
+ * comments sheet; the post page, which already lists comments, scrolls instead.
+ */
+export function PostCard({ post, onComment }: { post: Post; onComment?: () => void }) {
   const { signedIn } = useAuth();
   const like = useLikeMutation();
   const toast = useToast();
   const [saved, setSaved] = useState(!!post.isSaved);
   const [index, setIndex] = useState(0);
+  const [commentsOpen, setCommentsOpen] = useState(false);
 
   const media = post.media.length ? post.media : post.trip?.coverMedia ? [post.trip.coverMedia] : [];
 
@@ -129,7 +135,7 @@ export function PostCard({ post }: { post: Post }) {
           <Action
             icon="comment"
             label={compactCount(post.commentCount)}
-            to={`/posts/${post.id}`}
+            onClick={onComment ?? (() => setCommentsOpen(true))}
             aria="Comments"
           />
           <Action icon="share" label={compactCount(post.shareCount)} onClick={onShare} aria="Share" />
@@ -144,6 +150,13 @@ export function PostCard({ post }: { post: Post }) {
           />
         </div>
       </div>
+
+      <CommentsSheet
+        postId={post.id}
+        commentCount={post.commentCount}
+        open={commentsOpen}
+        onClose={() => setCommentsOpen(false)}
+      />
     </article>
   );
 }

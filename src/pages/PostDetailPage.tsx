@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { flatten, keys, useComments, usePost } from '@/api/queries';
+import { usePost } from '@/api/queries';
 import { postsApi } from '@/api/endpoints';
-import { timeAgo } from '@/lib/format';
-import { Avatar, EmptyState, Skeleton } from '@/components/ui/Bits';
+import { Skeleton } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Field';
 import { Dropdown } from '@/components/ui/Dropdown';
@@ -14,9 +12,9 @@ import { ApiError } from '@/api/client';
 import { track } from '@/lib/busy';
 import { VISIBILITY_META } from '@/lib/labels';
 import { VISIBILITY, type Post, type Visibility } from '@/api/types';
-import { ErrorState, LoadMore } from '@/components/layout/States';
+import { ErrorState } from '@/components/layout/States';
 import { PostCard } from '@/components/post/PostCard';
-import { useAuth } from '@/store/auth';
+import { CommentComposer, CommentList } from '@/components/post/Comments';
 import { useToast } from '@/components/ui/Toast';
 
 const MAX_CAPTION = 2200;
@@ -115,8 +113,6 @@ function OwnerControls({ post, onChanged }: { post: Post; onChanged: () => void 
 export function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
   const post = usePost(id);
-  const comments = useComments(id);
-  const list = flatten(comments.data);
 
   if (post.isLoading) {
     return (
@@ -130,101 +126,23 @@ export function PostDetailPage() {
 
   return (
     <div className="mx-auto w-full max-w-[560px] space-y-5">
-      <PostCard post={post.data} />
+      {/* Comments are already on this page, so the card's button scrolls to them. */}
+      <PostCard
+        post={post.data}
+        onComment={() => document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+      />
 
       {post.data.isOwner && <OwnerControls post={post.data} onChanged={() => post.refetch()} />}
 
-      <section aria-labelledby="comments-heading">
+      <section id="comments" aria-labelledby="comments-heading" className="scroll-mt-24">
         <h2 id="comments-heading" className="mb-3 text-base font-semibold">
           Comments
           <span className="tnum ml-1.5 text-sm font-normal text-ink-faint">{post.data.commentCount}</span>
         </h2>
 
         <CommentComposer postId={post.data.id} />
-
-        {comments.isLoading ? (
-          <div className="mt-4 space-y-3">
-            {[0, 1].map((i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
-          </div>
-        ) : list.length === 0 ? (
-          <EmptyState icon="comment" title="No comments yet" body="Ask them something about the trip." />
-        ) : (
-          <ul className="mt-4 space-y-4">
-            {list.map((comment) => (
-              <li key={comment.id} className="flex gap-2.5">
-                <Avatar user={comment.user} size="sm" />
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-baseline gap-2">
-                    <Link to={`/@${comment.user.username}`} className="text-[13px] font-semibold hover:text-brand">
-                      {comment.user.name}
-                    </Link>
-                    <time className="text-2xs text-ink-faint" dateTime={comment.createdAt}>
-                      {timeAgo(comment.createdAt)}
-                    </time>
-                  </p>
-                  <p className="mt-0.5 whitespace-pre-line text-sm leading-relaxed">{comment.body}</p>
-                  {comment.replyCount > 0 && (
-                    <p className="tnum mt-1 text-xs text-ink-faint">
-                      {comment.replyCount} {comment.replyCount === 1 ? 'reply' : 'replies'}
-                    </p>
-                  )}
-                </div>
-              </li>
-            ))}
-            <LoadMore
-              onVisible={() => comments.fetchNextPage()}
-              hasMore={!!comments.hasNextPage}
-              loading={comments.isFetchingNextPage}
-            />
-          </ul>
-        )}
+        <CommentList postId={post.data.id} className="mt-5" />
       </section>
     </div>
-  );
-}
-
-function CommentComposer({ postId }: { postId: string }) {
-  const { signedIn } = useAuth();
-  const [body, setBody] = useState('');
-  const [busy, setBusy] = useState(false);
-  const queryClient = useQueryClient();
-  const toast = useToast();
-
-  if (!signedIn) {
-    return (
-      <p className="rounded-xl bg-sunk px-3.5 py-3 text-[13px] text-ink-soft">
-        <Link to="/login" className="font-medium text-brand hover:underline">Log in</Link> to join the conversation.
-      </p>
-    );
-  }
-
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!body.trim()) return;
-    setBusy(true);
-    try {
-      await postsApi.addComment(postId, body.trim());
-      setBody('');
-      queryClient.invalidateQueries({ queryKey: keys.comments(postId) });
-      queryClient.invalidateQueries({ queryKey: keys.post(postId) });
-    } catch (error: any) {
-      toast(error?.message ?? 'Could not post that', 'error');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <form onSubmit={submit} className="space-y-2">
-      <Textarea
-        value={body}
-        onChange={(event) => setBody(event.target.value)}
-        placeholder="Ask about the trip…"
-        rows={2}
-      />
-      <Button type="submit" size="sm" loading={busy} disabled={!body.trim()} className="ml-auto flex">
-        Comment
-      </Button>
-    </form>
   );
 }
