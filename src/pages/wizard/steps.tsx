@@ -21,6 +21,7 @@ import { Badge, Chip, StarPicker } from '@/components/ui/Bits';
 import { Icon, IconTile } from '@/components/ui/Icon';
 import { PlacePicker } from './PlacePicker';
 import { ImageCropper } from '@/components/ui/ImageCropper';
+import { SmartImage } from '@/components/ui/SmartImage';
 
 
 // -------------------------------------------------------- 1. destination
@@ -1428,7 +1429,7 @@ export function StepPhotos({
                     pending && 'pointer-events-none',
                   )}
                 >
-                  <img src={photo.media.url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                  <SmartImage src={photo.media.url} compact />
 
                   {pending && (
                     <span className="absolute inset-0 grid place-items-center bg-black/55 backdrop-blur-[1px]">

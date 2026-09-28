@@ -4,6 +4,7 @@ import { cn } from '@/lib/cn';
 import { Icon } from '@/components/ui/Icon';
 import { formatDate } from '@/lib/format';
 import type { TripPhoto } from '@/api/types';
+import { SmartImage } from '@/components/ui/SmartImage';
 
 const SWIPE_THRESHOLD = 48;
 
@@ -109,14 +110,14 @@ export function PhotoViewer({
           }
         }}
       >
-        <img
+        <SmartImage
           key={photo.id}
           src={photo.media.url}
           alt={photo.caption ?? ''}
-          className={cn(
-            'absolute inset-0 m-auto max-h-full max-w-full object-contain',
-            direction === 1 ? 'animate-slide-in' : 'animate-fade-in',
-          )}
+          fit="contain"
+          eager
+          placeholder="none"
+          className={cn('!absolute inset-0', direction === 1 ? 'animate-slide-in' : 'animate-fade-in')}
         />
 
         {count > 1 && (

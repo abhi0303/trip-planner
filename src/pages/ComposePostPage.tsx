@@ -18,6 +18,7 @@ import { EmptyState } from '@/components/ui/Bits';
 import { ErrorState } from '@/components/layout/States';
 import { TripCardSkeleton } from '@/components/trip/TripCard';
 import { useToast } from '@/components/ui/Toast';
+import { SmartImage } from '@/components/ui/SmartImage';
 
 const MAX_MEDIA = 20;
 const MAX_CAPTION = 2200;
@@ -75,10 +76,10 @@ function TripChooser({ onPick }: { onPick: (tripId: string) => void }) {
                 className="flex w-full items-center gap-3 rounded-card bg-surface p-3 text-left ring-1 ring-inset ring-line-soft transition hover:ring-brand/40"
               >
                 {trip.coverMedia ? (
-                  <img
+                  <SmartImage
                     src={trip.coverMedia.thumbnailUrl ?? trip.coverMedia.url}
-                    alt=""
-                    className="h-14 w-14 shrink-0 rounded-xl object-cover"
+                    compact
+                    className="!h-14 !w-14 shrink-0 rounded-xl"
                   />
                 ) : (
                   <IconTile name="map" size="lg" />
@@ -230,10 +231,11 @@ function Compose({ tripId, onBack }: { tripId: string; onBack?: () => void }) {
                         order >= 0 ? 'ring-brand' : 'ring-transparent hover:ring-line',
                       )}
                     >
-                      <img
+                      <SmartImage
                         src={media.thumbnailUrl ?? media.url}
-                        alt=""
-                        className={cn('aspect-square w-full object-cover transition', order >= 0 && 'brightness-90')}
+                        compact
+                        className="aspect-square !h-auto"
+                        imgClassName={cn('transition', order >= 0 && 'brightness-90')}
                       />
                       <span
                         className={cn(

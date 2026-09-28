@@ -4,6 +4,7 @@ import { cn } from '@/lib/cn';
 import { initials } from '@/lib/format';
 import type { UserSummary } from '@/api/types';
 import { Icon, type IconName } from './Icon';
+import { useImageLoader } from './SmartImage';
 
 // -------------------------------------------------------------------- badges
 
@@ -79,23 +80,18 @@ export function Avatar({
   /** Gradient halo — used where the person is the subject of the screen. */
   ring?: boolean;
 }) {
-  const inner = user.profileImage ? (
-    <img
-      src={user.profileImage}
-      alt=""
-      loading="lazy"
-      className={cn('rounded-full object-cover bg-sunk', AVATAR_SIZES[size], className)}
-    />
-  ) : (
+  const inner = (
     <span
       className={cn(
-        'inline-flex items-center justify-center rounded-full font-semibold text-white',
+        'relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-white',
         'gradient-brand',
         AVATAR_SIZES[size], className,
       )}
       aria-hidden
     >
+      {/* Initials sit underneath, so a slow or broken photo still shows who it is. */}
       {initials(user.name)}
+      {user.profileImage && <AvatarPhoto src={user.profileImage} />}
     </span>
   );
 
@@ -110,6 +106,27 @@ export function Avatar({
     <Link to={`/@${user.username}`} className="shrink-0" aria-label={user.name}>
       {wrapped}
     </Link>
+  );
+}
+
+/** Fades in over the initials once loaded; if it never loads, the initials stay. */
+function AvatarPhoto({ src }: { src: string }) {
+  const image = useImageLoader(src);
+  if (image.status === 'error') return null;
+  return (
+    <img
+      ref={image.ref}
+      src={image.src}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      onLoad={image.onLoad}
+      onError={image.onError}
+      className={cn(
+        'absolute inset-0 h-full w-full object-cover transition-opacity duration-300',
+        image.status === 'loaded' ? 'opacity-100' : 'opacity-0',
+      )}
+    />
   );
 }
 

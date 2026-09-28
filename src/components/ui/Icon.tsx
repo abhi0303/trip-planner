@@ -4,7 +4,7 @@ import {
   Bus, CalendarDays, Camera, Car, Castle, Check, ChevronDown, ChevronLeft,
   ChevronRight, ChevronUp, Church, Clock3, Cloud, CloudFog, CloudRain, CloudSun,
   Coffee, Coins, Compass, CreditCard, Crown, Download, Droplets, Eye, EyeOff, Flame,
-  Flower2, Footprints, Fuel, Gem, Globe2, GripVertical, Heart, Hotel, Images,
+  Flower2, Footprints, Fuel, Gem, Globe2, GripVertical, Heart, Hotel, ImageOff, Images, RotateCw,
   Info, Landmark, Laptop, LayoutGrid, Leaf, LoaderCircle, LogIn, LogOut, Map,
   MapPin, Martini, MessageCircle, Moon, Mountain, Navigation, OctagonAlert,
   PenLine, PersonStanding, Plane, Plus, Route, Search, Send, Settings,
@@ -177,6 +177,8 @@ const ICONS = {
   edit: PenLine,
   drag: GripVertical,
   spinner: LoaderCircle,
+  retry: RotateCw,
+  imageOff: ImageOff,
   sun: Sun,
   moon: Moon,
 } satisfies Record<string, LucideIcon>;

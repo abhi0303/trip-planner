@@ -9,6 +9,7 @@ import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/store/auth';
 import { useSaveTripMutation } from '@/api/queries';
 import type { TripCard as TripCardType } from '@/api/types';
+import { SmartImage } from '@/components/ui/SmartImage';
 
 export function TripCard({
   trip, className, style,
@@ -37,11 +38,9 @@ export function TripCard({
     >
       <Link to={`/trips/${trip.slug}`} className="relative block aspect-[16/11] overflow-hidden bg-sunk">
         {trip.coverMedia ? (
-          <img
+          <SmartImage
             src={trip.coverMedia.url}
-            alt=""
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-700 ease-spring group-hover:scale-[1.06]"
+            imgClassName="transition-[opacity,transform] duration-700 ease-spring group-hover:scale-[1.06]"
           />
         ) : (
           // No photo yet: draw deterministic artwork rather than a grey panel.

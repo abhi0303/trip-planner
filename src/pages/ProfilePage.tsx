@@ -13,6 +13,7 @@ import { ErrorState, LoadMore } from '@/components/layout/States';
 import { TripGrid } from '@/components/trip/TripCard';
 import { useAuth } from '@/store/auth';
 import { useToast } from '@/components/ui/Toast';
+import { SmartImage } from '@/components/ui/SmartImage';
 
 type Tab = 'trips' | 'drafts' | 'map';
 
@@ -59,7 +60,7 @@ export function ProfilePage() {
     <div className="mx-auto w-full max-w-5xl">
       <div className="relative z-0 -mx-4 mb-4 aspect-[4/1] overflow-hidden bg-sunk sm:mx-0 sm:rounded-xl2">
         {p.coverImage ? (
-          <img src={p.coverImage} alt="" className="h-full w-full object-cover" />
+          <SmartImage src={p.coverImage} eager />
         ) : (
           <div className="h-full w-full" style={{ backgroundImage: brandCover(p.id) }} aria-hidden />
         )}

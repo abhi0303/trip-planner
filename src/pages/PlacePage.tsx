@@ -10,6 +10,7 @@ import { Icon, IconTile } from '@/components/ui/Icon';
 import { ErrorState, LoadMore } from '@/components/layout/States';
 import { TripGrid } from '@/components/trip/TripCard';
 import type { PlaceAggregates } from '@/api/types';
+import { SmartImage } from '@/components/ui/SmartImage';
 
 export function PlacePage() {
   const { idOrSlug } = useParams<{ idOrSlug: string }>();
@@ -32,7 +33,7 @@ export function PlacePage() {
         {/* A place without a photo still gets real artwork rather than a grey band. */}
         <div className="relative -mx-4 mb-6 aspect-[21/9] overflow-hidden bg-sunk sm:mx-0 sm:rounded-xl2">
           {p.coverImage ? (
-            <img src={p.coverImage} alt="" className="h-full w-full object-cover" />
+            <SmartImage src={p.coverImage} eager />
           ) : (
             <div className="h-full w-full" style={{ backgroundImage: meshGradient(p.id) }} aria-hidden />
           )}

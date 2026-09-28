@@ -20,6 +20,7 @@ import {
 } from '@/components/trip/TripSections';
 import { useAuth } from '@/store/auth';
 import { useToast } from '@/components/ui/Toast';
+import { SmartImage } from '@/components/ui/SmartImage';
 
 export function TripDetailPage() {
   const { idOrSlug } = useParams<{ idOrSlug: string }>();
@@ -82,7 +83,7 @@ export function TripDetailPage() {
         {/* Full-bleed cover; a trip without a photo still gets real artwork. */}
         <div className="relative -mx-4 mb-7 aspect-[16/9] overflow-hidden bg-sunk sm:mx-0 sm:aspect-[21/9] sm:rounded-xl2">
           {t.coverMedia ? (
-            <img src={t.coverMedia.url} alt="" className="h-full w-full object-cover" />
+            <SmartImage src={t.coverMedia.url} eager />
           ) : (
             <div className="h-full w-full" style={{ backgroundImage: meshGradient(t.id) }} aria-hidden />
           )}

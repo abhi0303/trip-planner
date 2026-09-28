@@ -12,6 +12,7 @@ import { Icon, IconTile } from '@/components/ui/Icon';
 import type {
   RatingGroup, RealityCheck, TripDay, TripDetail, TripPhoto, TripPlace, TripStay,
 } from '@/api/types';
+import { SmartImage } from '@/components/ui/SmartImage';
 
 // ------------------------------------------------------------ places / route
 
@@ -425,11 +426,10 @@ export function PhotoGrid({
                 aria-label={`Open photo ${index + 1}`}
                 className="block h-full w-full"
               >
-                <img
+                <SmartImage
                   src={photo.media.url}
                   alt={photo.caption ?? ''}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  imgClassName="transition-[opacity,transform] duration-300 group-hover:scale-105"
                 />
               </button>
 

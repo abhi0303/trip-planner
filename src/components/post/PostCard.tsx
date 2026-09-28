@@ -5,6 +5,7 @@ import { compactCount, duration, moneyShort, timeAgo, travelers } from '@/lib/fo
 import { Avatar, Badge } from '@/components/ui/Bits';
 import { Icon } from '@/components/ui/Icon';
 import { FloatButton } from '@/components/ui/Button';
+import { SmartImage } from '@/components/ui/SmartImage';
 import { useLikeMutation } from '@/api/queries';
 import { postsApi } from '@/api/endpoints';
 import { useAuth } from '@/store/auth';
@@ -77,7 +78,7 @@ export function PostCard({ post, onComment }: { post: Post; onComment?: () => vo
 
       {media.length > 0 && (
         <div className="relative aspect-[4/5] bg-sunk">
-          <img src={media[index].url} alt="" className="h-full w-full object-cover" loading="lazy" />
+          <SmartImage key={media[index].id} src={media[index].url} />
           {post.place && (
             // Stops short of the photo counter in the top-right corner.
             <span className="absolute left-3 right-16 top-3 flex">
