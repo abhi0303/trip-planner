@@ -39,6 +39,7 @@
     --c-shadow: 15 23 42;
     /* Illustrations ship on a white plate; dark mode takes the glare off. */
     --illo-filter: none;
+    --map-filter: none;
 
     /*
       Expense categories. A fixed categorical palette — never cycled, never
@@ -90,6 +91,9 @@
 
       --c-shadow: 0 0 0;
       --illo-filter: brightness(0.93) saturate(1.06);
+    --map-filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9) saturate(0.78);
+      /* Turns a daylight map sheet into one that belongs on a dark page. */
+      --map-filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9) saturate(0.78);
 
       /* The same six hues, re-stepped for the dark surface — not a flip. */
       --viz-transportation: #3987e5;

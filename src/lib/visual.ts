@@ -71,3 +71,15 @@ export function brandCover(seed: string): string {
     `linear-gradient(115deg, ${b}, ${c})`,
   ].join(', ');
 }
+
+/**
+ * How close to sit the map on a place, since the categories differ by orders of
+ * magnitude: a country wants continents around it, a restaurant wants a street.
+ */
+export function zoomFor(category: string): number {
+  if (['COUNTRY'].includes(category)) return 5;
+  if (['STATE', 'REGION', 'ISLAND', 'NATIONAL_PARK', 'DESERT', 'MOUNTAIN'].includes(category)) return 9;
+  if (['CITY', 'TOWN'].includes(category)) return 12;
+  if (['VILLAGE', 'BEACH', 'LAKE', 'WATERFALL', 'VALLEY'].includes(category)) return 14;
+  return 15;
+}

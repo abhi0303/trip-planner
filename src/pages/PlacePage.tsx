@@ -5,7 +5,8 @@ import { cn } from '@/lib/cn';
 import { compactCount, minutes, money } from '@/lib/format';
 import { criteriaLabel, placeIcon, placeLine, severityMeta, styleMeta } from '@/lib/labels';
 import { Badge, EmptyState, Skeleton, Stars } from '@/components/ui/Bits';
-import { meshGradient } from '@/lib/visual';
+import { meshGradient, zoomFor } from '@/lib/visual';
+import { StaticMap } from '@/components/place/StaticMap';
 import { Icon, IconTile } from '@/components/ui/Icon';
 import { ErrorState, LoadMore } from '@/components/layout/States';
 import { TripGrid } from '@/components/trip/TripCard';
@@ -34,10 +35,24 @@ export function PlacePage() {
         <div className="relative -mx-4 mb-6 aspect-[21/9] overflow-hidden bg-sunk sm:mx-0 sm:rounded-xl2">
           {p.coverImage ? (
             <SmartImage src={p.coverImage} eager />
+          ) : p.latitude !== null && p.longitude !== null ? (
+            /* No photo, but we know where it is — so show that rather than
+               decoration. Places recorded before the geocoder have no
+               coordinates and still fall back to the gradient. */
+            <StaticMap
+              lat={p.latitude}
+              lon={p.longitude}
+              zoom={zoomFor(p.category)}
+              label={p.name}
+              className="h-full w-full"
+            />
           ) : (
             <div className="h-full w-full" style={{ backgroundImage: meshGradient(p.id) }} aria-hidden />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-ground via-ground/50 to-ground/5" aria-hidden />
+          {/* The scrim would swallow the map, so it only covers a photo. */}
+          {p.coverImage && (
+            <div className="absolute inset-0 bg-gradient-to-t from-ground via-ground/50 to-ground/5" aria-hidden />
+          )}
         </div>
 
         <div className="flex items-start gap-4">
