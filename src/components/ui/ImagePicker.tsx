@@ -2,10 +2,11 @@ import { useRef, useState } from 'react';
 import { mediaApi } from '@/api/endpoints';
 import { ApiError } from '@/api/client';
 import { cn } from '@/lib/cn';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 import { Spinner } from './Button';
 import { useToast } from './Toast';
 import { ImageCropper } from './ImageCropper';
+import { ConfirmDialog } from './ConfirmDialog';
 
 const ACCEPT = 'image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif';
 
@@ -56,7 +57,47 @@ function useCropFlow(onUploaded: (url: string) => void) {
   return { pending, pick, apply, cancel: () => setPending(null), busy };
 }
 
-/** Circular avatar picker with the current image as its own preview. */
+/**
+ * A control that sits on top of the image it acts on.
+ *
+ * Always visible, never hover-gated: a phone has no hover, and the previous
+ * design revealed the only affordance on a pointer that half the people using
+ * this will never have. Glass over a scrim so it stays legible on a photo of
+ * a bright beach or a night market alike.
+ */
+function ImageAction({
+  icon, label, onClick, disabled, size = 36, tone = 'plain',
+}: {
+  icon: IconName;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  size?: number;
+  tone?: 'plain' | 'danger';
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      style={{ width: size, height: size }}
+      className={cn(
+        'grid place-items-center rounded-full text-white backdrop-blur-md',
+        'bg-black/45 ring-1 ring-inset ring-white/25 shadow-[0_2px_8px_-2px_rgb(0_0_0/0.5)]',
+        'transition-all duration-200 active:scale-90',
+        'outline-none focus-visible:ring-2 focus-visible:ring-white',
+        tone === 'danger' ? 'hover:bg-danger/90' : 'hover:bg-black/70',
+        disabled && 'pointer-events-none opacity-50',
+      )}
+    >
+      <Icon name={icon} size={size >= 36 ? 17 : 15} />
+    </button>
+  );
+}
+
+/** Circular avatar picker, with its controls on the avatar itself. */
 export function AvatarPicker({
   value, fallback, onChange, size = 96,
 }: {
@@ -67,59 +108,51 @@ export function AvatarPicker({
 }) {
   const input = useRef<HTMLInputElement>(null);
   const crop = useCropFlow((url) => onChange(url));
+  const [confirming, setConfirming] = useState(false);
   const busy = crop.busy;
+  const choose = () => input.current?.click();
 
   return (
     <div className="flex items-center gap-4">
-      <button
-        type="button"
-        onClick={() => input.current?.click()}
-        disabled={busy}
-        aria-label="Change profile picture"
-        className="group relative shrink-0 rounded-full outline-none ring-offset-2 ring-offset-surface focus-visible:ring-2 focus-visible:ring-brand"
-        style={{ width: size, height: size }}
-      >
-        {value ? (
-          <img src={value} alt="" className="h-full w-full rounded-full object-cover" />
-        ) : (
-          <span className="grid h-full w-full place-items-center rounded-full gradient-brand text-xl font-semibold text-white">
-            {fallback}
+      <div className="relative shrink-0" style={{ width: size, height: size }}>
+        <button
+          type="button"
+          onClick={choose}
+          disabled={busy}
+          aria-label={value ? 'Replace profile picture' : 'Upload a profile picture'}
+          className="block h-full w-full rounded-full outline-none ring-offset-2 ring-offset-surface focus-visible:ring-2 focus-visible:ring-brand"
+        >
+          {value ? (
+            <img src={value} alt="" className="h-full w-full rounded-full object-cover" />
+          ) : (
+            <span className="grid h-full w-full place-items-center rounded-full gradient-brand text-xl font-semibold text-white">
+              {fallback}
+            </span>
+          )}
+          {busy && (
+            <span className="absolute inset-0 grid place-items-center rounded-full bg-black/55 text-white">
+              <Spinner className="h-5 w-5" />
+            </span>
+          )}
+        </button>
+
+        {/* Siblings of the button, not children — a button inside a button is
+            invalid and the inner one stops working. */}
+        <span className="absolute -bottom-1 -right-1">
+          <ImageAction icon="camera" label={value ? 'Replace picture' : 'Upload a picture'} onClick={choose} disabled={busy} size={32} />
+        </span>
+        {value && !busy && (
+          <span className="absolute -right-1 -top-1">
+            <ImageAction icon="trash" label="Remove picture" tone="danger" onClick={() => setConfirming(true)} size={32} />
           </span>
         )}
-
-        <span
-          className={cn(
-            'absolute inset-0 grid place-items-center rounded-full bg-black/55 text-white',
-            'opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100',
-            busy && 'opacity-100',
-          )}
-        >
-          {busy ? <Spinner className="h-5 w-5" /> : <Icon name="camera" size={20} />}
-        </span>
-      </button>
+      </div>
 
       <div className="min-w-0">
         <p className="text-[13px] font-medium">Profile picture</p>
-        <p className="mt-0.5 text-xs text-ink-faint">JPEG, PNG, WebP or HEIC · up to 10 MB</p>
-        <div className="mt-2 flex gap-3">
-          <button
-            type="button"
-            onClick={() => input.current?.click()}
-            disabled={busy}
-            className="text-[13px] font-medium text-brand hover:underline disabled:opacity-50"
-          >
-            {value ? 'Replace' : 'Upload'}
-          </button>
-          {value && (
-            <button
-              type="button"
-              onClick={() => onChange(null)}
-              className="text-[13px] font-medium text-ink-faint hover:text-danger"
-            >
-              Remove
-            </button>
-          )}
-        </div>
+        <p className="mt-0.5 text-xs leading-relaxed text-ink-faint">
+          JPEG, PNG, WebP or HEIC · up to 10 MB
+        </p>
       </div>
 
       <input
@@ -144,6 +177,15 @@ export function AvatarPicker({
           onConfirm={crop.apply}
         />
       )}
+
+      <ConfirmDialog
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        onConfirm={() => { onChange(null); setConfirming(false); }}
+        title="Remove your profile picture?"
+        body="Your initials will show instead. You can upload a new one whenever you like."
+        confirmLabel="Remove"
+      />
     </div>
   );
 }
@@ -158,7 +200,9 @@ export function CoverPicker({
 }) {
   const input = useRef<HTMLInputElement>(null);
   const crop = useCropFlow((url) => onChange(url));
+  const [confirming, setConfirming] = useState(false);
   const busy = crop.busy;
+  const choose = () => input.current?.click();
 
   return (
     <div>
@@ -167,44 +211,43 @@ export function CoverPicker({
         <span className="text-xs text-ink-faint">recommended 1600 × 400</span>
       </div>
 
-      <button
-        type="button"
-        onClick={() => input.current?.click()}
-        disabled={busy}
-        aria-label="Change cover photo"
-        className="group relative block aspect-[4/1] w-full overflow-hidden rounded-2xl ring-1 ring-inset ring-line-soft outline-none focus-visible:ring-2 focus-visible:ring-brand"
-      >
-        {value ? (
-          <img src={value} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <span className="block h-full w-full" style={{ backgroundImage: fallbackGradient }} />
-        )}
-
-        <span
-          className={cn(
-            'absolute inset-0 grid place-items-center gap-1 bg-black/45 text-white',
-            'opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100',
-            busy && 'opacity-100',
-          )}
-        >
-          {busy ? <Spinner className="h-6 w-6" /> : (
-            <span className="flex items-center gap-2 text-[13px] font-medium">
-              <Icon name="camera" size={18} />
-              {value ? 'Replace cover' : 'Upload a cover'}
-            </span>
-          )}
-        </span>
-      </button>
-
-      {value && (
+      <div className="relative overflow-hidden rounded-2xl ring-1 ring-inset ring-line-soft">
         <button
           type="button"
-          onClick={() => onChange(null)}
-          className="mt-2 text-[13px] font-medium text-ink-faint hover:text-danger"
+          onClick={choose}
+          disabled={busy}
+          aria-label={value ? 'Replace cover photo' : 'Upload a cover photo'}
+          className="block aspect-[4/1] w-full outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
         >
-          Remove cover
+          {value ? (
+            <img src={value} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="block h-full w-full" style={{ backgroundImage: fallbackGradient }} />
+          )}
+
+          {/* Keeps the controls readable whatever the photo is doing up there. */}
+          <span className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/35 to-transparent" />
+
+          {busy ? (
+            <span className="absolute inset-0 grid place-items-center bg-black/45 text-white">
+              <Spinner className="h-6 w-6" />
+            </span>
+          ) : !value && (
+            <span className="absolute inset-0 grid place-items-center text-white">
+              <span className="flex items-center gap-2 text-[13px] font-medium drop-shadow">
+                <Icon name="camera" size={18} /> Add a cover
+              </span>
+            </span>
+          )}
         </button>
-      )}
+
+        <div className="absolute right-2 top-2 flex gap-1.5">
+          <ImageAction icon="camera" label={value ? 'Replace cover' : 'Upload a cover'} onClick={choose} disabled={busy} />
+          {value && !busy && (
+            <ImageAction icon="trash" label="Remove cover" tone="danger" onClick={() => setConfirming(true)} />
+          )}
+        </div>
+      </div>
 
       <input
         ref={input}
@@ -227,6 +270,15 @@ export function CoverPicker({
           onConfirm={crop.apply}
         />
       )}
+
+      <ConfirmDialog
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        onConfirm={() => { onChange(null); setConfirming(false); }}
+        title="Remove your cover photo?"
+        body="Your profile falls back to its colour gradient. You can add another one at any time."
+        confirmLabel="Remove"
+      />
     </div>
   );
 }
