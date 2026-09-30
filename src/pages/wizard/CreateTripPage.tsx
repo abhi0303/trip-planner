@@ -471,7 +471,11 @@ export function CreateTripPage() {
         </div>
       )}
 
-      <footer className="sticky bottom-14 z-10 -mx-4 mt-6 flex items-center gap-2 border-t border-line-soft bg-ground/95 px-4 py-3 backdrop-blur-md lg:bottom-0">
+      {/* Buttons never wrap their own labels, so three of them at once — back,
+          save and continue on the expenses step — ran off a 380px screen.
+          Wrapping is the safety net; the shorter label is what keeps them on
+          one line at the width most phones actually are. */}
+      <footer className="sticky bottom-14 z-10 -mx-4 mt-6 flex flex-wrap items-center gap-2 border-t border-line-soft bg-ground/95 px-4 py-3 backdrop-blur-md lg:bottom-0">
         {step > 0 && (
           <Button variant="ghost" onClick={back} disabled={saving}>
             <Icon name="chevronLeft" size={16} /> Back
@@ -480,7 +484,9 @@ export function CreateTripPage() {
 
         <div className="ml-auto flex items-center gap-2">
           {current.id === 'expenses' && tripId && (
-            <Button variant="outline" onClick={saveExpenses} loading={saving}>Save expenses</Button>
+            <Button variant="outline" onClick={saveExpenses} loading={saving}>
+              Save<span className="hidden sm:inline">&nbsp;expenses</span>
+            </Button>
           )}
           {isLast ? (
             <Button onClick={publish} loading={saving} disabled={!tripId}>
