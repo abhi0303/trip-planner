@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { OfflineNotice } from '@/components/layout/OfflineNotice';
 import { Avatar } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/store/auth';
@@ -79,6 +80,7 @@ export function AppShell() {
         </aside>
 
         <main className="min-w-0 flex-1 pb-28 pt-5 lg:pb-14 lg:pt-7">
+          <OfflineNotice />
           {/* Keyed on the path so a crash on one page clears when you navigate. */}
           <ErrorBoundary key={location.pathname}>
             <Outlet />

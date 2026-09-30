@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { flatten, useFeed, usePopularPlaces } from '@/api/queries';
 import { PostCard, PostCardSkeleton } from '@/components/post/PostCard';
-import { ErrorState, LoadMore } from '@/components/layout/States';
+import { ErrorState, LoadMore, OfflineState } from '@/components/layout/States';
 import { InstallPrompt } from '@/components/layout/InstallPrompt';
 import { Button } from '@/components/ui/Button';
 import { EmptyState, Segmented } from '@/components/ui/Bits';
@@ -49,8 +49,15 @@ export function HomePage() {
           </div>
         )}
 
-        {feed.isError ? (
+        {/* Anything already on screen beats an error about the refresh that
+            failed: a saved feed is the point of keeping one. The banner above
+            says why it may be behind, so the error only shows with nothing to
+            fall back to. */}
+        {posts.length === 0 && feed.isError ? (
           <ErrorState error={feed.error} onRetry={() => feed.refetch()} />
+        ) : posts.length === 0 && feed.isPending && feed.fetchStatus === 'paused' ? (
+          // Offline with nothing cached: the query is parked, not empty.
+          <OfflineState onRetry={() => feed.refetch()} />
         ) : feed.isLoading ? (
           <div className="space-y-4">
             <PostCardSkeleton />

@@ -13,7 +13,7 @@ import { Avatar, Badge, Skeleton } from '@/components/ui/Bits';
 import { meshGradient } from '@/lib/visual';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { ErrorState } from '@/components/layout/States';
+import { ErrorState, OfflineState } from '@/components/layout/States';
 import { ExpenseHidden, ExpensePanel } from '@/components/trip/ExpensePanel';
 import { DeleteTripDialog } from '@/components/trip/DeleteTrip';
 import {
@@ -58,7 +58,14 @@ export function TripDetailPage() {
   );
 
   if (trip.isLoading) return <TripDetailSkeleton />;
-  if (trip.isError) return <ErrorState error={trip.error} onRetry={() => trip.refetch()} />;
+  // A saved copy outranks a failed refresh — see the note on the home feed.
+  if (!trip.data) {
+    // Offline and this trip is not one of the few kept on the device.
+    if (trip.isPending && trip.fetchStatus === 'paused') {
+      return <OfflineState onRetry={() => trip.refetch()} />;
+    }
+    if (trip.isError) return <ErrorState error={trip.error} onRetry={() => trip.refetch()} />;
+  }
   if (!trip.data) return null;
 
   const t = trip.data;

@@ -1,3 +1,4 @@
+import { connectivity } from '@/store/connectivity';
 import type { ApiErrorCode, Page } from './types';
 
 const BASE = (import.meta.env.VITE_API_URL ?? 'https://tripsphere-api.onrender.com/api/v1').replace(/\/$/, '');
@@ -142,8 +143,12 @@ async function request(path: string, options: RequestOptions = {}): Promise<Resp
       body: isForm ? body : body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
+    connectivity.reportFailure();
     throw new NetworkError();
   }
+
+  // Any answer at all — including a 4xx — proves the server is awake.
+  connectivity.reportSuccess();
 
   if (res.status === 401 && retry && tokens.refresh) {
     if (await refreshOnce()) {

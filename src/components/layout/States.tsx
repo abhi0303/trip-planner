@@ -55,6 +55,24 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
   );
 }
 
+/**
+ * Nothing cached and nothing reachable.
+ *
+ * Worth its own state because the alternative is worse than useless: a paused
+ * query has no error and no data, so a list falls through to its empty state
+ * and tells someone with no signal that nobody has posted anything.
+ */
+export function OfflineState({ onRetry }: { onRetry?: () => void }) {
+  return (
+    <EmptyState
+      icon="cloudOff"
+      title="Nothing saved for offline yet"
+      body="This is the first time on this screen without a connection, so there is no copy to show. What you open from now on is kept for next time."
+      action={onRetry && <Button onClick={onRetry} variant="outline">Try again</Button>}
+    />
+  );
+}
+
 /** Fires `onVisible` when scrolled into view — drives every infinite list. */
 export function LoadMore({
   onVisible, hasMore, loading,

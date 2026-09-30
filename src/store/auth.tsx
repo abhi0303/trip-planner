@@ -1,7 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/api/endpoints';
 import { ApiError, tokens } from '@/api/client';
+import { hydrate, readProfile, saveProfile, watch } from '@/lib/offlineCache';
+import { wipeOfflineData } from '@/lib/offlineDb';
 import type { AuthSession, UserProfile } from '@/api/types';
 
 interface AuthValue {
@@ -22,6 +24,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const queryClient = useQueryClient();
+  const userRef = useRef<UserProfile | null>(null);
+  userRef.current = user;
 
   // Rehydrate the session on boot. A stored refresh token is enough — the
   // client transparently exchanges it if the access token has expired.
@@ -33,25 +37,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
         return;
       }
+
+      // Paint from the last known profile before the network is consulted. A
+      // held token means this session was real; the server confirms it below
+      // and signs out only on a genuine auth failure.
+      const cached = await readProfile();
+      if (cached && !cancelled) {
+        setUser(cached);
+        setLoading(false);
+        await hydrate(queryClient, cached.id);
+      }
+
       try {
         const profile = await authApi.me();
-        if (!cancelled) setUser(profile);
+        if (cancelled) return;
+        setUser(profile);
+        void saveProfile(profile);
+        // A first-ever load has no cached profile, so hydrate once the id lands.
+        if (!cached) await hydrate(queryClient, profile.id);
       } catch (error) {
         // Only a genuine auth failure should clear the session; a cold-starting
         // or unreachable server must not sign the user out.
-        if (error instanceof ApiError && error.isAuth) tokens.clear();
+        if (error instanceof ApiError && error.isAuth) {
+          tokens.clear();
+          setUser(null);
+          void wipeOfflineData();
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
 
     return () => { cancelled = true; };
-  }, []);
+  }, [queryClient]);
+
+  // Mirror successful reads to disk for the next cold start.
+  useEffect(() => watch(queryClient, () => userRef.current?.id ?? null), [queryClient]);
 
   const adopt = useCallback((session: AuthSession) => {
     tokens.save(session.tokens.accessToken, session.tokens.refreshToken);
     setUser(session.user);
     queryClient.clear();
+    // Whoever was cached before is not who just signed in.
+    void wipeOfflineData().then(() => saveProfile(session.user));
     return session.user;
   }, [queryClient]);
 
@@ -73,11 +101,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     tokens.clear();
     setUser(null);
     queryClient.clear();
+    // Nothing of theirs survives on a shared device.
+    await wipeOfflineData();
   }, [queryClient]);
 
   const refreshUser = useCallback(async () => {
     try {
-      setUser(await authApi.me());
+      const profile = await authApi.me();
+      setUser(profile);
+      void saveProfile(profile);
     } catch { /* keep the stale profile rather than blanking the UI */ }
   }, []);
 

@@ -2,10 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { mediaApi, tripsApi } from '@/api/endpoints';
-import { ApiError } from '@/api/client';
+import { ApiError, NetworkError } from '@/api/client';
 import { keys, useTrip, useTripMeta } from '@/api/queries';
 import { toDateInput } from '@/lib/format';
 import { track } from '@/lib/busy';
+import {
+  clearDraft, readDraft, saveDraft as saveLocalDraft, sendable, type DraftPayload,
+} from '@/lib/offlineDraft';
+import { useAuth } from '@/store/auth';
+import { useConnectivity } from '@/store/connectivity';
 import { cn } from '@/lib/cn';
 import { Button, Spinner } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -61,6 +66,13 @@ export function CreateTripPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [publishProblems, setPublishProblems] = useState<string[]>([]);
+  /** Blocks the local draft from saving until a restore has been considered. */
+  const [restored, setRestored] = useState(false);
+  /** A create was attempted and the network was not there. */
+  const [pendingCreate, setPendingCreate] = useState(false);
+
+  const { user } = useAuth();
+  const { reach } = useConnectivity();
 
   const trip = useTrip(tripId);
   const template = useTrip(templateId ?? undefined);
@@ -107,6 +119,45 @@ export function CreateTripPage() {
     toast('Pre-filled from that trip — set your own dates');
   }, [template.data, routeId, toast]);
 
+  // ------------------------------------------------- the offline local draft
+  //
+  // Only for a brand new trip. Once the trip exists server-side it saves per
+  // step in the normal way, and an editing session must not be shadowed by a
+  // stale local copy.
+  const localOnly = !routeId && !tripId && !templateId;
+
+  // Restore anything typed before the connection went, once.
+  useEffect(() => {
+    if (!user || !localOnly) { setRestored(true); return; }
+    let cancelled = false;
+
+    (async () => {
+      const saved = await readDraft(user.id);
+      if (cancelled) { return; }
+      if (saved) {
+        setDraft((current) => ({ ...current, ...saved.payload.draft }));
+        setDestinations(saved.payload.destinations);
+        setLines(saved.payload.lines);
+        setStep(saved.payload.step);
+        toast('Picked up where you left off');
+      }
+      setRestored(true);
+    })();
+
+    return () => { cancelled = true; };
+    // Restoring once on mount is the point; later state changes must not re-run it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Keep the local copy current. Debounced so typing does not hit the disk on
+  // every keystroke.
+  useEffect(() => {
+    if (!user || !localOnly || !restored) return;
+    const payload: DraftPayload = { draft, destinations, lines, step };
+    const timer = setTimeout(() => { void saveLocalDraft(user.id, payload); }, 600);
+    return () => clearTimeout(timer);
+  }, [user, localOnly, restored, draft, destinations, lines, step]);
+
   const patch = useCallback((next: Partial<CreateTripBody>) => {
     setDraft((current) => ({ ...current, ...next }));
   }, []);
@@ -150,6 +201,9 @@ export function CreateTripPage() {
         setTripId(created.id);
         setDestinations(created.destinations ?? []);
         queryClient.setQueryData(keys.trip(created.id), created);
+        // It lives on the server now; the local copy would only go stale.
+        setPendingCreate(false);
+        void clearDraft();
         return created.id;
       }
       const updated = await tripsApi.update(tripId, body);
@@ -157,12 +211,29 @@ export function CreateTripPage() {
       queryClient.setQueryData(keys.trip(tripId), updated);
       return tripId;
     } catch (error) {
+      // A create that never reached the server is not a failure to report as
+      // one — everything typed is already on disk, so say so and retry when
+      // the connection comes back.
+      if (error instanceof NetworkError) {
+        if (!tripId) setPendingCreate(true);
+        toast('Saved on this device — it will go up when you reconnect');
+        return undefined;
+      }
       toast(error instanceof ApiError ? error.message : 'Could not save', 'error');
       return undefined;
     } finally {
       setSaving(false);
     }
   }, [draft, destinations, tripId, queryClient, toast]);
+
+  // The connection came back with a create still owed. The wizard is on screen,
+  // so this finishes what the traveller already asked for rather than writing
+  // behind their back.
+  useEffect(() => {
+    if (!pendingCreate || reach !== 'live' || saving) return;
+    if (!sendable({ draft, destinations, lines, step })) return;
+    void persist().then((id) => { if (id) toast('Back online — your trip is saved'); });
+  }, [pendingCreate, reach, saving, draft, destinations, lines, step, persist, toast]);
 
   const destinationOk = !!(
     draft.title?.trim() && draft.countryCode && draft.country && destinations.length > 0

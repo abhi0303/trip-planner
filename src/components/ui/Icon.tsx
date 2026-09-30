@@ -2,7 +2,7 @@ import {
   Anchor, Armchair, ArrowLeft, ArrowRight, ArrowUpRight, ArrowUpDown, Backpack,
   BadgeCheck, Banknote, Bed, Binoculars, Bird, BookMarked, Bookmark, Building2,
   Bus, CalendarDays, Camera, Car, Castle, Check, ChevronDown, ChevronLeft,
-  ChevronRight, ChevronUp, Church, Clock3, Cloud, CloudFog, CloudRain, CloudSun,
+  ChevronRight, ChevronUp, Church, Clock3, Cloud, CloudFog, CloudOff, CloudRain, CloudSun,
   Coffee, Coins, Compass, CreditCard, Crown, Download, Droplets, Eye, EyeOff, Flame,
   Flower2, Footprints, Fuel, Gem, Globe2, GripVertical, Heart, Hotel, ImageOff, Images, RotateCw,
   Info, Landmark, Laptop, LayoutGrid, Leaf, LoaderCircle, LogIn, LogOut, Map,
@@ -83,6 +83,7 @@ const ICONS = {
   // ---- weather
   sunny: Sun,
   cloudy: Cloud,
+  cloudOff: CloudOff,
   rainy: CloudRain,
   snowy: Snowflake,
   windy: Wind,
