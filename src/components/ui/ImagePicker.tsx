@@ -58,22 +58,22 @@ function useCropFlow(onUploaded: (url: string) => void) {
 }
 
 /**
- * A control that sits on top of the image it acts on.
+ * A bare control that sits on the image it acts on.
  *
- * Always visible, never hover-gated: a phone has no hover, and the previous
- * design revealed the only affordance on a pointer that half the people using
- * this will never have. Glass over a scrim so it stays legible on a photo of
- * a bright beach or a night market alike.
+ * No chip, no filled circle: a pill behind every icon read as a stray UI part
+ * dropped on the photo. The icon carries its own legibility through a shadow,
+ * which holds over a bright sky as well as a dark street, and the tap target is
+ * padding rather than anything you can see.
  */
 function ImageAction({
-  icon, label, onClick, disabled, size = 36, tone = 'plain',
+  icon, label, onClick, disabled, size = 19, className,
 }: {
   icon: IconName;
   label: string;
   onClick: () => void;
   disabled?: boolean;
   size?: number;
-  tone?: 'plain' | 'danger';
+  className?: string;
 }) {
   return (
     <button
@@ -82,17 +82,16 @@ function ImageAction({
       disabled={disabled}
       aria-label={label}
       title={label}
-      style={{ width: size, height: size }}
       className={cn(
-        'grid place-items-center rounded-full text-white backdrop-blur-md',
-        'bg-black/45 ring-1 ring-inset ring-white/25 shadow-[0_2px_8px_-2px_rgb(0_0_0/0.5)]',
-        'transition-all duration-200 active:scale-90',
-        'outline-none focus-visible:ring-2 focus-visible:ring-white',
-        tone === 'danger' ? 'hover:bg-danger/90' : 'hover:bg-black/70',
-        disabled && 'pointer-events-none opacity-50',
+        'grid h-10 w-10 place-items-center rounded-full text-white',
+        '[filter:drop-shadow(0_1px_2px_rgb(0_0_0/0.9))_drop-shadow(0_0_10px_rgb(0_0_0/0.45))]',
+        'transition-transform duration-200 ease-spring hover:scale-110 active:scale-90',
+        'outline-none focus-visible:ring-2 focus-visible:ring-white/90',
+        disabled && 'pointer-events-none opacity-40',
+        className,
       )}
     >
-      <Icon name={icon} size={size >= 36 ? 17 : 15} />
+      <Icon name={icon} size={size} strokeWidth={2.1} />
     </button>
   );
 }
@@ -130,7 +129,7 @@ export function AvatarPicker({
             </span>
           )}
           {busy && (
-            <span className="absolute inset-0 grid place-items-center rounded-full bg-black/55 text-white">
+            <span className="absolute inset-0 grid place-items-center rounded-full bg-black/50 text-white">
               <Spinner className="h-5 w-5" />
             </span>
           )}
@@ -138,14 +137,29 @@ export function AvatarPicker({
 
         {/* Siblings of the button, not children — a button inside a button is
             invalid and the inner one stops working. */}
-        <span className="absolute -bottom-1 -right-1">
-          <ImageAction icon="camera" label={value ? 'Replace picture' : 'Upload a picture'} onClick={choose} disabled={busy} size={32} />
+        {/* Both controls stay inside the circle. Outside it they would be white
+            on a pale card, which in light mode is nothing at all. */}
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 rounded-b-full bg-gradient-to-t from-black/75 via-black/35 to-transparent" />
+
+        <span className="absolute inset-x-0 bottom-1 flex items-center justify-center">
+          <ImageAction
+            icon="camera"
+            label={value ? 'Replace picture' : 'Upload a picture'}
+            onClick={choose}
+            disabled={busy}
+            size={17}
+            className="h-9 w-9"
+          />
+          {value && !busy && (
+            <ImageAction
+              icon="trash"
+              label="Remove picture"
+              onClick={() => setConfirming(true)}
+              size={16}
+              className="h-9 w-9"
+            />
+          )}
         </span>
-        {value && !busy && (
-          <span className="absolute -right-1 -top-1">
-            <ImageAction icon="trash" label="Remove picture" tone="danger" onClick={() => setConfirming(true)} size={32} />
-          </span>
-        )}
       </div>
 
       <div className="min-w-0">
@@ -241,10 +255,10 @@ export function CoverPicker({
           )}
         </button>
 
-        <div className="absolute right-2 top-2 flex gap-1.5">
+        <div className="absolute right-1 top-1 flex">
           <ImageAction icon="camera" label={value ? 'Replace cover' : 'Upload a cover'} onClick={choose} disabled={busy} />
           {value && !busy && (
-            <ImageAction icon="trash" label="Remove cover" tone="danger" onClick={() => setConfirming(true)} />
+            <ImageAction icon="trash" label="Remove cover" onClick={() => setConfirming(true)} />
           )}
         </div>
       </div>

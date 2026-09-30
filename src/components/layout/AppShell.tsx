@@ -17,6 +17,22 @@ interface NavItem {
   authOnly?: boolean;
 }
 
+/**
+ * Where a search field earns its place. Everywhere else it was a permanent
+ * fixture nobody on a settings screen was going to type into, taking the widest
+ * slot in the header to do it.
+ */
+const SEARCH_ROUTES = ['/', '/explore', '/search'];
+
+/** What the header says instead, so the slot carries the page rather than sitting empty. */
+const TITLES: Record<string, string> = {
+  '/settings': 'Settings',
+  '/saved': 'Saved',
+  '/create': 'New trip',
+  '/posts/new': 'Share a post',
+  '/notifications': 'Notifications',
+};
+
 const NAV: NavItem[] = [
   { to: '/', label: 'Home', icon: 'home' },
   { to: '/explore', label: 'Explore', icon: 'compass' },
@@ -124,10 +140,14 @@ function RailLink({ to, label, icon }: NavItem) {
 
 function TopBar() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { user, signedIn, loading } = useAuth();
   const { resolved, toggle } = useTheme();
   const [query, setQuery] = useState('');
   const [scrolled, setScrolled] = useState(false);
+
+  const showSearch = SEARCH_ROUTES.includes(pathname);
+  const title = TITLES[pathname] ?? '';
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -153,35 +173,65 @@ function TopBar() {
           </span>
         </NavLink>
 
-        <form
-          className="relative mx-auto w-full max-w-[560px]"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (query.trim()) navigate(`/search?q=${encodeURIComponent(query.trim())}`);
-          }}
-        >
-          <Icon name="search" size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-faint" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search places, trips, people"
-            aria-label="Search"
+        {showSearch ? (
+          <form
+            className="relative mx-auto w-full max-w-[560px]"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (query.trim()) navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+            }}
+          >
+            <Icon name="search" size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-faint" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search places, trips, people"
+              aria-label="Search"
+              className={cn(
+                'h-11 w-full rounded-pill border border-line bg-surface/70 pl-11 pr-4 text-sm',
+                'placeholder:text-ink-faint transition-all duration-200 ease-spring',
+                'hover:border-ink-faint focus:border-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-brand/20',
+              )}
+            />
+          </form>
+        ) : (
+          <span
             className={cn(
-              'h-11 w-full rounded-pill border border-line bg-surface/70 pl-11 pr-4 text-sm',
-              'placeholder:text-ink-faint transition-all duration-200 ease-spring',
-              'hover:border-ink-faint focus:border-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-brand/20',
+              'truncate font-display text-[17px] font-semibold tracking-tight transition-all duration-300 sm:text-lg',
+              // The page prints its own heading at the top. This takes over
+              // once that has scrolled away, rather than repeating it.
+              scrolled ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-1 opacity-0',
             )}
-          />
-        </form>
+          >
+            {title}
+          </span>
+        )}
 
         <div className="flex shrink-0 items-center justify-end gap-2">
           <button
             onClick={toggle}
             aria-label={resolved === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="grid h-10 w-10 place-items-center rounded-xl text-ink-soft transition-all duration-200 ease-spring hover:bg-sunk hover:text-ink active:scale-90"
+            /* Settings carries a full appearance section, and on a phone this
+               was the third button crowding the search field. */
+            className="hidden h-10 w-10 place-items-center rounded-xl text-ink-soft transition-all duration-200 ease-spring hover:bg-sunk hover:text-ink active:scale-90 sm:grid"
           >
             <Icon name={resolved === 'dark' ? 'sun' : 'moon'} size={19} />
           </button>
+
+          {/* The rail carries this on a desktop; on a phone there was no way in
+              at all short of guessing the URL. */}
+          {signedIn && (
+            <NavLink
+              to="/settings"
+              aria-label="Settings"
+              className={({ isActive }) => cn(
+                'grid h-10 w-10 place-items-center rounded-xl transition-all duration-200 ease-spring active:scale-90 lg:hidden',
+                isActive ? 'bg-brand-soft text-brand' : 'text-ink-soft hover:bg-sunk hover:text-ink',
+              )}
+            >
+              <Icon name="settings" size={19} />
+            </NavLink>
+          )}
 
           {loading ? (
             <div className="h-9 w-9 animate-pulse rounded-full bg-sunk" />
