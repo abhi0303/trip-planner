@@ -30,11 +30,6 @@ async function write(key: string, userId: string, data: unknown) {
   await idb.put(CACHE_STORE, record);
 }
 
-async function read<T>(key: string, userId: string): Promise<CacheRecord<T> | null> {
-  const record = await idb.get<CacheRecord<T>>(CACHE_STORE, key);
-  return usable(record, userId) ? record! : null;
-}
-
 // ------------------------------------------------------------------ profile
 
 export const saveProfile = (user: UserProfile) => write(PROFILE_KEY, user.id, user);
@@ -131,11 +126,32 @@ export function watch(client: QueryClient, getUserId: () => string | null): () =
   });
 }
 
-// --------------------------------------------------------------------- ages
+// ----------------------------------------------------------------- eviction
 
-/** The newest thing on disk, used to say how old the offline screen is. */
-export async function lastSavedAt(userId: string): Promise<number | null> {
+/**
+ * Forgets a trip that no longer exists.
+ *
+ * Deleting only clears the in-memory cache, which a reload rebuilds from disk —
+ * so without this a deleted trip comes back on the next offline start, from its
+ * own page and from any cached post that pointed at it.
+ */
+export async function evictTrip(trip: { id: string; slug?: string }): Promise<void> {
+  await Promise.all([
+    idb.del(CACHE_STORE, tripKey(trip.id)),
+    trip.slug ? idb.del(CACHE_STORE, tripKey(trip.slug)) : Promise.resolve(null),
+  ]);
+
+  // Any cached feed page still carrying its posts has to lose them too.
   const rows = await idb.all<CacheRecord>(CACHE_STORE);
-  const mine = rows.filter((row) => usable(row, userId));
-  return mine.length ? Math.max(...mine.map((row) => row.savedAt)) : null;
+  await Promise.all(rows
+    .filter((row) => row.key.startsWith('feed:'))
+    .map((row) => {
+      const data = row.data as FeedPages;
+      const pages = data.pages?.map((page) => ({
+        ...page,
+        items: page.items.filter((post) => (post as Post & { trip?: { id: string } }).trip?.id !== trip.id),
+      }));
+      if (!pages) return Promise.resolve(null);
+      return idb.put(CACHE_STORE, { ...row, data: { ...data, pages } });
+    }));
 }

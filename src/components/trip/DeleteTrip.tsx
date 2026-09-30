@@ -3,6 +3,7 @@ import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { tripsApi } from '@/api/endpoints';
 import { ApiError } from '@/api/client';
 import { track } from '@/lib/busy';
+import { evictTrip } from '@/lib/offlineCache';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -36,6 +37,8 @@ function purgeTrip(queryClient: QueryClient, trip: Pick<TripCard, 'id' | 'slug'>
   dropFromLists(queryClient, ['feed'], fromTrip);
   queryClient.removeQueries({ queryKey: ['trip', trip.id] });
   queryClient.removeQueries({ queryKey: ['trip', trip.slug] });
+  // And off the device, or it returns on the next offline start.
+  void evictTrip(trip);
 
   // Then the truth: lists, profile counts and travel map, saves and collections.
   for (const key of ['trips', 'feed', 'post', 'user', 'saved', 'collections', 'search', 'place']) {
