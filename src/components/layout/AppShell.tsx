@@ -5,6 +5,7 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { OfflineNotice } from '@/components/layout/OfflineNotice';
 import { Avatar } from '@/components/ui/Bits';
 import { Button } from '@/components/ui/Button';
+import { isStaff } from '@/lib/roles';
 import { useAuth } from '@/store/auth';
 import { useTheme } from '@/store/theme';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -74,6 +75,8 @@ export function AppShell() {
           )}
 
           <div className="mt-auto space-y-1 border-t border-line-soft pt-4">
+            {/* Absent for everyone else, not merely disabled. */}
+            {isStaff(user) && <RailLink to="/admin" label="Admin" icon="shield" />}
             <RailLink to="/settings" label="Settings" icon="settings" />
             {signedIn && (
               <button

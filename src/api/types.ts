@@ -584,3 +584,92 @@ export interface UpdateProfileBody {
   websiteUrl?: string;
   currency?: Currency;
 }
+
+// --------------------------------------------------------------------- admin
+//
+// The admin read endpoints describe their responses as a bare object in the
+// OpenAPI document, so these shapes are written from the spec's prose rather
+// than generated. They are the one place in this file that is not derived from
+// the contract — if a field arrives under a different name, it is wrong here
+// and nowhere else.
+
+export type UserStatus = NonNullable<UserProfile['status']>;
+
+export interface AdminStats {
+  users: { total: number; active: number; suspended: number; newLast7Days: number; newLast30Days: number };
+  trips: { total: number; published: number; draft: number };
+  posts: { total: number };
+  places: { total: number; missingCoordinates: number; unverified: number; orphaned: number };
+  reports: { pending: number };
+}
+
+export interface AdminUser extends UserSummary {
+  email: string | null;
+  role: UserProfile['role'];
+  status: UserStatus;
+  tripCount: number;
+  postCount: number;
+  lastLoginAt: string | null;
+  createdAt: string;
+}
+
+/** A trip row as admins see it — including the private and draft ones. */
+export interface AdminTrip extends TripCard {
+  status: TripStatus;
+}
+
+export interface AdminPlace extends PlaceSummary {
+  isVerified: boolean;
+  /** What still points at this place, which is what blocks a delete. */
+  referenceCount?: number;
+}
+
+export interface AdminAction {
+  id: string;
+  actor: UserSummary | null;
+  action: string;
+  targetType: 'USER' | 'TRIP' | 'POST' | 'COMMENT' | 'PLACE';
+  targetId: string;
+  reason: string | null;
+  createdAt: string;
+}
+
+export interface AdminUserFilters {
+  q?: string;
+  role?: UserProfile['role'];
+  status?: UserStatus;
+  page?: number;
+  limit?: number;
+}
+
+export interface AdminTripFilters {
+  q?: string;
+  status?: TripStatus;
+  visibility?: Visibility;
+  userId?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface AdminPlaceFilters {
+  q?: string;
+  missingCoordinates?: boolean;
+  unverified?: boolean;
+  orphaned?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+export interface UpdatePlaceBody {
+  name?: string;
+  category?: PlaceCategory;
+  countryCode?: string;
+  country?: string;
+  state?: string;
+  region?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+  isDestination?: boolean;
+  isVerified?: boolean;
+}

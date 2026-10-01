@@ -1,11 +1,10 @@
 import {
-  useInfiniteQuery, useMutation, useQuery, useQueryClient,
-} from '@tanstack/react-query';
+  useInfiniteQuery, useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
-  placesApi, postsApi, savedApi, searchApi, tripsApi, usersApi,
-} from './endpoints';
+  placesApi, postsApi, savedApi, searchApi, tripsApi, usersApi, adminApi } from './endpoints';
 import { geocode } from '@/lib/geocode';
-import type { FeedType, Post, TripCard, TripFilters } from './types';
+import type { FeedType, Post, TripCard, TripFilters,
+  AdminPlaceFilters, AdminTripFilters, AdminUserFilters } from './types';
 
 /** One place for every cache key, so invalidation never guesses. */
 export const keys = {
@@ -341,3 +340,25 @@ export const useSearchUsers = (q: string, enabled: boolean) =>
 export function flatten<T>(data: { pages: Array<{ items: T[] }> } | undefined): T[] {
   return data?.pages.flatMap((page) => page.items) ?? [];
 }
+
+// --------------------------------------------------------------------- admin
+
+export const adminKeys = {
+  stats: ['admin', 'stats'] as const,
+  users: (filters: AdminUserFilters) => ['admin', 'users', filters] as const,
+  trips: (filters: AdminTripFilters) => ['admin', 'trips', filters] as const,
+  places: (filters: AdminPlaceFilters) => ['admin', 'places', filters] as const,
+};
+
+/** Staff only — the caller is responsible for not mounting these for a USER. */
+export const useAdminStats = () =>
+  useQuery({ queryKey: adminKeys.stats, queryFn: adminApi.stats, staleTime: 60_000 });
+
+export const useAdminUsers = (filters: AdminUserFilters) =>
+  useQuery({ queryKey: adminKeys.users(filters), queryFn: () => adminApi.users(filters), placeholderData: keepPreviousData });
+
+export const useAdminTrips = (filters: AdminTripFilters) =>
+  useQuery({ queryKey: adminKeys.trips(filters), queryFn: () => adminApi.trips(filters), placeholderData: keepPreviousData });
+
+export const useAdminPlaces = (filters: AdminPlaceFilters) =>
+  useQuery({ queryKey: adminKeys.places(filters), queryFn: () => adminApi.places(filters), placeholderData: keepPreviousData });

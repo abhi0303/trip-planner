@@ -14,6 +14,12 @@ import { PostDetailPage } from '@/pages/PostDetailPage';
 import { FollowListPage, ProfilePage } from '@/pages/ProfilePage';
 import { CreateTripPage } from '@/pages/wizard/CreateTripPage';
 import { ComposePostPage } from '@/pages/ComposePostPage';
+import { AdminLayout } from '@/pages/admin/AdminLayout';
+import { AdminDashboard } from '@/pages/admin/AdminDashboard';
+import { AdminUsers } from '@/pages/admin/AdminUsers';
+import { AdminTrips } from '@/pages/admin/AdminTrips';
+import { AdminPlaces } from '@/pages/admin/AdminPlaces';
+import { isStaff } from '@/lib/roles';
 import { useAuth } from '@/store/auth';
 
 export function App() {
@@ -39,6 +45,13 @@ export function App() {
         <Route path="saved" element={<RequireAuth><SavedPage /></RequireAuth>} />
         <Route path="settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
 
+        <Route path="admin" element={<RequireStaff><AdminLayout /></RequireStaff>}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="trips" element={<AdminTrips />} />
+          <Route path="places" element={<AdminPlaces />} />
+        </Route>
+
         <Route path="login" element={<RedirectIfAuthed><AuthPage mode="login" /></RedirectIfAuthed>} />
         <Route path="register" element={<RedirectIfAuthed><AuthPage mode="register" /></RedirectIfAuthed>} />
 
@@ -53,6 +66,25 @@ function UsernameRoute() {
   const { username } = useParams();
   if (!username?.startsWith('@')) return <NotFound />;
   return <ProfilePage />;
+}
+
+/**
+ * The admin area is hidden rather than disabled, and a role that changed under
+ * a live session sends someone back to the app rather than to an error page —
+ * they have not done anything wrong, they simply are not staff any more.
+ */
+function RequireStaff({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-24">
+        <Spinner className="h-6 w-6 text-brand" />
+      </div>
+    );
+  }
+  if (!isStaff(user)) return <Navigate to="/" replace />;
+  return <>{children}</>;
 }
 
 function RequireAuth({ children }: { children: React.ReactNode }) {

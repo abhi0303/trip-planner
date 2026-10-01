@@ -2,6 +2,8 @@ import { ApiError, api, apiPage, qs } from './client';
 import type {
   ActivityKind, AuthSession, Collection, Comment, CreateTripBody, ExpenseInput, ExpenseLine,
   ExpenseSummary, FeedType, Media, PlaceCategory, PlaceDetail, PlaceSummary, Post, RatingInput,
+  AdminAction, AdminPlace, AdminPlaceFilters, AdminStats, AdminTrip, AdminTripFilters, AdminUser,
+  AdminUserFilters, UpdatePlaceBody, UserStatus,
   ReportReason, SearchAll, StayInput, ToggleResult, TravelMapEntry, TripCard, TripDay, TripDetail,
   TripFilters, TripMeta, TripPhoto, TripPlace, TripStay, UpdateProfileBody, UpdateTripBody,
   UserProfile, UserSummary,
@@ -319,4 +321,55 @@ export const mediaApi = {
 export const moderationApi = {
   report: (body: { targetType: 'USER' | 'TRIP' | 'POST' | 'COMMENT' | 'PLACE'; targetId: string; reason: ReportReason; details?: string }) =>
     api<{ message: string }>('/reports', { method: 'POST', body }),
+};
+
+// --------------------------------------------------------------------- admin
+
+/**
+ * Staff-only. Every route here is enforced server side by the role guard —
+ * hiding the navigation is a courtesy, not the control.
+ */
+export const adminApi = {
+  stats: () => api<AdminStats>('/admin/stats'),
+
+  users: (filters: AdminUserFilters = {}) =>
+    apiPage<AdminUser>(`/admin/users${qs({ ...filters })}`),
+
+  user: (id: string) => api<AdminUser>(`/admin/users/${id}`),
+
+  /** Also revokes their refresh tokens, so the change applies on the next request. */
+  setRole: (id: string, body: { role: AdminUser['role']; reason?: string }) =>
+    api<AdminUser>(`/admin/users/${id}/role`, { method: 'PATCH', body }),
+
+  setStatus: (id: string, body: { status: UserStatus; reason?: string }) =>
+    api<AdminUser>(`/admin/users/${id}/status`, { method: 'PATCH', body }),
+
+  trips: (filters: AdminTripFilters = {}) =>
+    apiPage<AdminTrip>(`/admin/trips${qs({ ...filters })}`),
+
+  places: (filters: AdminPlaceFilters = {}) =>
+    apiPage<AdminPlace>(`/admin/places${qs({ ...filters })}`),
+
+  updatePlace: (id: string, body: UpdatePlaceBody) =>
+    api<AdminPlace>(`/admin/places/${id}`, { method: 'PATCH', body }),
+
+  /** Answers 409 with reference counts while anything still points at it. */
+  deletePlace: (id: string) =>
+    api<{ message: string }>(`/admin/places/${id}`, { method: 'DELETE' }),
+
+  /** Repoints everything at `targetId`, then deletes this row. One transaction. */
+  mergePlace: (id: string, body: { targetId: string; reason?: string }) =>
+    api<{ message: string }>(`/admin/places/${id}/merge`, { method: 'POST', body }),
+
+  reports: (params: { status?: string; cursor?: string; limit?: number } = {}) =>
+    apiPage<Record<string, unknown>>(`/admin/reports${qs({ ...params })}`),
+
+  resolveReport: (id: string, body: { status: string; resolutionNote?: string }) =>
+    api<{ message: string }>(`/admin/reports/${id}`, { method: 'PATCH', body }),
+
+  takeDown: (targetType: string, targetId: string) =>
+    api<{ message: string }>(`/admin/content/${targetType}/${targetId}`, { method: 'DELETE' }),
+
+  actions: (params: { page?: number; limit?: number } = {}) =>
+    apiPage<AdminAction>(`/admin/actions${qs({ ...params })}`),
 };
