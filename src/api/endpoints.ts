@@ -344,6 +344,15 @@ export const adminApi = {
   setStatus: (id: string, body: { status: UserStatus; reason?: string }) =>
     api<AdminUser>(`/admin/users/${id}/status`, { method: 'PATCH', body }),
 
+  /**
+   * Permanent, and it takes everything they made with it — trips, posts,
+   * photos, comments, likes, saves, follows — along with their uploaded files.
+   * Other people's counters are recomputed rather than decremented, so a reply
+   * that cascaded away is counted correctly.
+   */
+  deleteUser: (id: string) =>
+    api<{ message: string }>(`/admin/users/${id}`, { method: 'DELETE' }),
+
   trips: (filters: AdminTripFilters = {}) =>
     apiPage<AdminTrip>(`/admin/trips${qs({ ...filters })}`),
 
@@ -353,9 +362,13 @@ export const adminApi = {
   updatePlace: (id: string, body: UpdatePlaceBody) =>
     api<AdminPlace>(`/admin/places/${id}`, { method: 'PATCH', body }),
 
-  /** Answers 409 with reference counts while anything still points at it. */
-  deletePlace: (id: string) =>
-    api<{ message: string }>(`/admin/places/${id}`, { method: 'DELETE' }),
+  /**
+   * Answers 409 with reference counts while anything still points at it.
+   * `force` deletes it regardless, detaching it from every trip, post and stay
+   * rather than deleting those — which leaves those trips with no destination.
+   */
+  deletePlace: (id: string, force = false) =>
+    api<{ message: string }>(`/admin/places/${id}${qs({ force: force || undefined })}`, { method: 'DELETE' }),
 
   /** Repoints everything at `targetId`, then deletes this row. One transaction. */
   mergePlace: (id: string, body: { targetId: string; reason?: string }) =>

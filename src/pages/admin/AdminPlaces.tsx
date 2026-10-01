@@ -119,7 +119,13 @@ export function AdminPlaces() {
       )}
 
       {merging && <MergeDialog place={merging} onClose={() => setMerging(null)} />}
-      {removing && <DeleteDialog place={removing} onClose={() => setRemoving(null)} />}
+      {removing && (
+        <DeleteDialog
+          place={removing}
+          onClose={() => setRemoving(null)}
+          onMergeInstead={() => { setMerging(removing); setRemoving(null); }}
+        />
+      )}
     </div>
   );
 }
@@ -247,25 +253,76 @@ function MergeDialog({ place, onClose }: { place: AdminPlace; onClose: () => voi
   );
 }
 
-/** A delete that the server may refuse, which is the useful part. */
-function DeleteDialog({ place, onClose }: { place: AdminPlace; onClose: () => void }) {
+/**
+ * A delete the server may refuse, which is the useful part.
+ *
+ * The refusal is not an error to dismiss — it is the fork. Merging keeps every
+ * trip pointing somewhere real; forcing leaves those trips alive but with no
+ * destination at all, which is why it is opt-in and spelled out rather than
+ * offered as a retry.
+ */
+function DeleteDialog({
+  place, onClose, onMergeInstead,
+}: {
+  place: AdminPlace;
+  onClose: () => void;
+  onMergeInstead: () => void;
+}) {
   const [pending, setPending] = useState(false);
   const [blocked, setBlocked] = useState<string | null>(null);
   const toast = useToast();
   const queryClient = useQueryClient();
 
+  const run = async (force: boolean) => {
+    setPending(true);
+    try {
+      await track(adminApi.deletePlace(place.id, force));
+      await queryClient.invalidateQueries({ queryKey: ['admin'] });
+      toast(force ? 'Place deleted and detached' : 'Place deleted', 'success');
+      onClose();
+    } catch (error) {
+      // 409 is the designed answer, not a failure: it carries the counts.
+      if (!force && error instanceof ApiError && error.status === 409) setBlocked(error.message);
+      else toast(error instanceof ApiError ? error.message : 'Could not delete', 'error');
+    } finally {
+      setPending(false);
+    }
+  };
+
   if (blocked) {
     return (
-      <ConfirmDialog
+      <Modal
         open
-        onClose={onClose}
-        onConfirm={onClose}
-        icon="warning"
-        tone="brand"
+        onClose={() => !pending && onClose()}
         title="Still in use"
-        body={`${blocked} Merge it into another place instead, which moves those references across first.`}
-        confirmLabel="Close"
-      />
+        footer={
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="ghost" onClick={onClose} disabled={pending} className="w-full sm:w-auto">
+              Cancel
+            </Button>
+            <Button variant="danger" loading={pending} onClick={() => run(true)} className="w-full sm:w-auto">
+              <Icon name="trash" size={16} /> Delete anyway
+            </Button>
+            <Button onClick={onMergeInstead} disabled={pending} className="w-full sm:w-auto">
+              <Icon name="route" size={16} /> Merge instead
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-[13.5px] leading-relaxed text-ink-soft">{blocked}</p>
+          <div className="rounded-xl border border-warn/30 bg-warn-soft/60 p-3">
+            <p className="flex items-start gap-2 text-[13px] leading-relaxed">
+              <Icon name="warning" size={15} className="mt-0.5 shrink-0 text-warn" />
+              <span>
+                <strong>Merging</strong> moves those references onto another place, so every
+                trip still points somewhere real. <strong>Deleting anyway</strong> keeps the
+                trips but detaches them — they will be left with no destination.
+              </span>
+            </p>
+          </div>
+        </div>
+      </Modal>
     );
   }
 
@@ -275,23 +332,9 @@ function DeleteDialog({ place, onClose }: { place: AdminPlace; onClose: () => vo
       pending={pending}
       onClose={onClose}
       title={`Delete ${place.name}?`}
-      body="The row goes for good. If anything still points at it the server will refuse, and merging is the way through."
+      body="The row goes for good. If anything still points at it the server will say so, and offer merging as the way through."
       confirmLabel="Delete"
-      onConfirm={async () => {
-        setPending(true);
-        try {
-          await track(adminApi.deletePlace(place.id));
-          await queryClient.invalidateQueries({ queryKey: ['admin'] });
-          toast('Place deleted', 'success');
-          onClose();
-        } catch (error) {
-          // 409 is the designed answer, not a failure: it carries the counts.
-          if (error instanceof ApiError && error.status === 409) setBlocked(error.message);
-          else toast(error instanceof ApiError ? error.message : 'Could not delete', 'error');
-        } finally {
-          setPending(false);
-        }
-      }}
+      onConfirm={() => run(false)}
     />
   );
 }

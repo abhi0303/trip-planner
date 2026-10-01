@@ -39,6 +39,7 @@ export function AdminUsers() {
   };
 
   const [suspending, setSuspending] = useState<AdminUser | null>(null);
+  const [deleting, setDeleting] = useState<AdminUser | null>(null);
 
   return (
     <div className="space-y-4">
@@ -97,23 +98,26 @@ export function AdminUsers() {
                  themselves, so the controls are simply absent on your own row. */
               isSelf={row.id === me?.id}
               onSuspend={() => setSuspending(row)}
+              onDelete={() => setDeleting(row)}
             />
           ))}
         </ul>
       )}
 
       {suspending && <SuspendDialog row={suspending} onClose={() => setSuspending(null)} />}
+      {deleting && <DeleteUserDialog row={deleting} onClose={() => setDeleting(null)} />}
     </div>
   );
 }
 
 function UserRow({
-  row, canManage, isSelf, onSuspend,
+  row, canManage, isSelf, onSuspend, onDelete,
 }: {
   row: AdminUser;
   canManage: boolean;
   isSelf: boolean;
   onSuspend: () => void;
+  onDelete: () => void;
 }) {
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -169,9 +173,20 @@ function UserRow({
               disabled={busy}
               aria-label={row.status === 'SUSPENDED' ? `Reinstate ${row.name}` : `Suspend ${row.name}`}
               title={row.status === 'SUSPENDED' ? 'Reinstate' : 'Suspend'}
-              className="grid h-9 w-9 place-items-center rounded-lg text-ink-faint transition-colors hover:bg-danger-soft hover:text-danger"
+              className="grid h-9 w-9 place-items-center rounded-lg text-ink-faint transition-colors hover:bg-sunk hover:text-ink"
             >
               <Icon name={row.status === 'SUSPENDED' ? 'retry' : 'lock'} size={16} />
+            </button>
+            {/* Suspending is the reversible lever and sits first; this one is not. */}
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={busy}
+              aria-label={`Delete ${row.name}`}
+              title="Delete permanently"
+              className="grid h-9 w-9 place-items-center rounded-lg text-ink-faint transition-colors hover:bg-danger-soft hover:text-danger"
+            >
+              <Icon name="trash" size={16} />
             </button>
           </div>
         )}
@@ -207,6 +222,51 @@ function SuspendDialog({ row, onClose }: { row: AdminUser; onClose: () => void }
           onClose();
         } catch (error) {
           toast(error instanceof ApiError ? error.message : 'Could not update', 'error');
+        } finally {
+          setPending(false);
+        }
+      }}
+    />
+  );
+}
+
+/**
+ * Says what actually goes, because almost none of it is obvious from "delete
+ * user" and none of it comes back. The server refuses an admin deleting
+ * themselves, so this is never offered on your own row in the first place.
+ */
+function DeleteUserDialog({ row, onClose }: { row: AdminUser; onClose: () => void }) {
+  const [pending, setPending] = useState(false);
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
+  return (
+    <ConfirmDialog
+      open
+      pending={pending}
+      onClose={onClose}
+      title={`Delete ${row.name}?`}
+      confirmLabel="Delete permanently"
+      body={
+        <>
+          Their account and everything they made goes with it — trips, posts, photos,
+          comments, likes, saves and follows — and their uploaded files are removed from
+          storage. Counts on everyone they followed or whose posts they commented on are
+          corrected afterwards.
+          <br /><br />
+          <strong className="text-ink">This cannot be undone.</strong> Suspending them
+          instead keeps everything and can be reversed.
+        </>
+      }
+      onConfirm={async () => {
+        setPending(true);
+        try {
+          await track(adminApi.deleteUser(row.id));
+          await queryClient.invalidateQueries({ queryKey: ['admin'] });
+          toast(`${row.name} deleted`, 'success');
+          onClose();
+        } catch (error) {
+          toast(error instanceof ApiError ? error.message : 'Could not delete that account', 'error');
         } finally {
           setPending(false);
         }
